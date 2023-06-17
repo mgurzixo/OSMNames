@@ -34,29 +34,35 @@ def drop_unused_indexes():
 
 
 def create_custom_columns():
-    exec_sql_from_file("create_custom_columns.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_custom_columns.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def set_tables_unlogged():
-    exec_sql_from_file("set_tables_unlogged.sql", cwd=os.path.dirname(__file__), parallelize=True)
+    exec_sql_from_file("set_tables_unlogged.sql",
+                       cwd=os.path.dirname(__file__), parallelize=True)
 
 
 def create_helper_functions():
-    exec_sql_from_file("create_helper_functions.sql", cwd=os.path.dirname(__file__), parallelize=True)
+    exec_sql_from_file("create_helper_functions.sql",
+                       cwd=os.path.dirname(__file__), parallelize=True)
 
 
 def merge_linked_nodes():
-    exec_sql_from_file("merge_linked_nodes/merge_nodes_linked_by_relation.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file(
+        "merge_linked_nodes/merge_nodes_linked_by_relation.sql", cwd=os.path.dirname(__file__))
     vacuum_database()
 
 
 def delete_unusable_entries():
-    exec_sql_from_file("delete_unusable_entries.sql", cwd=os.path.dirname(__file__), parallelize=True)
+    exec_sql_from_file("delete_unusable_entries.sql",
+                       cwd=os.path.dirname(__file__), parallelize=True)
     vacuum_database()
 
 
 def set_place_ranks():
-    exec_sql_from_file("set_place_ranks.sql", cwd=os.path.dirname(__file__), parallelize=True)
+    exec_sql_from_file("set_place_ranks.sql",
+                       cwd=os.path.dirname(__file__), parallelize=True)
     vacuum_database()
 
 
@@ -72,10 +78,12 @@ def set_polygon_types():
 
 
 def merge_corresponding_linestrings():
-    exec_sql_from_file("merge_corresponding_linestrings.sql", cwd=os.path.dirname(__file__), parallelize=True)
+    exec_sql_from_file("merge_corresponding_linestrings.sql",
+                       cwd=os.path.dirname(__file__), parallelize=True)
     vacuum_database()
 
 
 def follow_wikipedia_redirects():
-    exec_sql_from_file("follow_wikipedia_redirects.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("follow_wikipedia_redirects.sql",
+                       cwd=os.path.dirname(__file__))
     vacuum_database()

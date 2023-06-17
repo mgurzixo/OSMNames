@@ -13,7 +13,8 @@ def import_wikipedia():
         return
 
     if settings.get("SKIP_WIKIPEDIA"):
-        log.info("SKIP_WIKIPEDIA = True in .env file, therefore skipping import and only create basic scaffolding")
+        log.info(
+            "SKIP_WIKIPEDIA = True in .env file, therefore skipping import and only create basic scaffolding")
         create_basic_scaffolding()
         return
 
@@ -33,11 +34,14 @@ def import_wikipedia():
 
 def download_dump(url):
     destination_dir = settings.get("IMPORT_DIR")
-    logged_check_call(["wget", "--no-clobber", "--directory-prefix", destination_dir, url])
+    logged_check_call(
+        ["wget", "--no-clobber", "--directory-prefix", destination_dir, url])
+
 
 def restore_wikipedia_articles():
     article_dump_filename = settings.get("WIKIPEDIA_DUMP_URL").split("/")[-1]
-    article_dump_path = "{}/{}".format(settings.get("IMPORT_DIR"), article_dump_filename)
+    article_dump_path = "{}/{}".format(settings.get("IMPORT_DIR"),
+                                       article_dump_filename)
 
     logged_check_call([
         "pg_restore",
@@ -51,8 +55,10 @@ def restore_wikipedia_articles():
 
 
 def restore_wikipedia_redirects():
-    redirect_dump_filename = settings.get("WIKIPEDIA_REDIRECTS_DUMP_URL").split("/")[-1]
-    redirect_dump_path = "{}/{}".format(settings.get("IMPORT_DIR"), redirect_dump_filename)
+    redirect_dump_filename = settings.get(
+        "WIKIPEDIA_REDIRECTS_DUMP_URL").split("/")[-1]
+    redirect_dump_path = "{}/{}".format(
+        settings.get("IMPORT_DIR"), redirect_dump_filename)
 
     logged_check_call([
         "pg_restore",
@@ -64,17 +70,19 @@ def restore_wikipedia_redirects():
         redirect_dump_path
     ])
 
+
 def prepare_wikipedia_redirects():
     exec_sql("""
         UPDATE wikipedia_redirect
             SET from_title = concat_ws(':', language, from_title),
                 to_title = concat_ws(':', language, to_title);
     """)
-    exec_sql("CREATE INDEX ON wikipedia_redirect USING hash(from_title);")
+    exec_sql("CREATE INDEX idx_wikipedia_redirect_from_title ON wikipedia_redirect USING hash(from_title);")
 
 
 def create_wikipedia_index():
-    exec_sql("CREATE INDEX idx_wikipedia_article_title ON wikipedia_article USING hash(title);")
+    exec_sql(
+        "CREATE INDEX idx_wikipedia_article_title ON wikipedia_article USING hash(title);")
 
 
 # this function should only be used, when the wikipedia import is skipped
@@ -93,5 +101,4 @@ def create_basic_scaffolding():
             to_title text NOT NULL
         );
     """
-
     exec_sql(query)

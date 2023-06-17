@@ -13,16 +13,17 @@ RUN apt-get install -y --no-install-recommends \
       postgresql-client \
       python3-pip \
       python3-dev \
-&& ln -s /usr/lib/libgeos_c.so /usr/lib/libgeos.so \
-&& rm -rf /var/lib/apt/lists/*
+      && ln -s /usr/lib/libgeos_c.so /usr/lib/libgeos.so \
+      && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -U setuptools
+RUN pip3 install -U simple-settings
 
 RUN go install github.com/omniscale/imposm3/cmd/imposm@latest
 
 RUN git clone https://github.com/gbb/par_psql && \
-    cd par_psql && ./install.sh
+      cd par_psql && ./install.sh
 
 ADD requirements.txt.lock /osmnames/requirements.txt.lock
 WORKDIR /osmnames

@@ -17,15 +17,18 @@ def prepare_housenumbers():
 
 
 def set_street_attributes_by_street_relation_members():
-    exec_sql_from_file("set_street_attributes_by_street_relation_members.sql", cwd=SQL_DIR)
+    exec_sql_from_file(
+        "set_street_attributes_by_street_relation_members.sql", cwd=SQL_DIR)
 
 
 def set_street_names_by_relation_attributes():
-    exec_sql_from_file("set_street_names_by_relation_attributes.sql", cwd=SQL_DIR)
+    exec_sql_from_file(
+        "set_street_names_by_relation_attributes.sql", cwd=SQL_DIR)
 
 
 def normalize_street_names():
-    exec_sql_from_file("normalize_street_names.sql", cwd=SQL_DIR, parallelize=True)
+    exec_sql_from_file("normalize_street_names.sql",
+                       cwd=SQL_DIR, parallelize=True)
 
 
 def set_street_ids_by_street_name():
@@ -33,7 +36,8 @@ def set_street_ids_by_street_name():
 
 
 def set_street_attributes_by_nearest_street():
-    exec_sql_from_file("set_street_attributes_by_nearest_street.sql", cwd=SQL_DIR, parallelize=True)
+    exec_sql_from_file(
+        "set_street_attributes_by_nearest_street.sql", cwd=SQL_DIR, parallelize=True)
 
 
 def sanitize_housenumbers():

@@ -3,6 +3,8 @@ CREATE INDEX IF NOT EXISTS osm_linestring_normalized_name_trgm ON osm_linestring
 CREATE INDEX IF NOT EXISTS osm_linestring_geometry ON osm_linestring USING GIST(geometry); --&
 CREATE INDEX IF NOT EXISTS osm_housenumber_geometry_center ON osm_housenumber USING GIST(geometry_center); --&
 
+-- CREATE INDEX IF NOT EXISTS idx_osm_housenumber_street_id ON osm_housenumber USING hash(street_id);
+
 -- see https://www.postgresql.org/docs/9.6/static/pgtrgm.html for more information
 UPDATE pg_settings SET setting = '0.5' WHERE name = 'pg_trgm.similarity_threshold';
 

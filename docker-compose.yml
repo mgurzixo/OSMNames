@@ -1,35 +1,39 @@
-version: '2'
+version: "2"
 services:
-  osmnames:
-    build: .
-    volumes:
-      - .:/osmnames
-      - ./data:${DATA_DIR}
-    depends_on:
-      - postgres
-    tmpfs: /tmp
-    env_file: .env
+    osmnames:
+        build: .
+        volumes:
+            - .:/osmnames
+            - ./data:${DATA_DIR}
+        depends_on:
+            - postgres
+        tmpfs: /tmp
+        env_file: .env
 
-  postgres:
-    image: postgis/postgis:15-3.3
-    shm_size: 512mb # for processing the world, I increased this to 16g
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./data/postgres_config.sh:/docker-entrypoint-initdb.d/postgres_config.sh
+    postgres:
+        image: postgis/postgis:15-3.3
+        # shm_size: 512mb # for processing the world, I increased this to 16g
+        shm_size: 16gb # for processing the world, I increased this to 16g
+        environment:
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./data/postgres_config.sh:/docker-entrypoint-initdb.d/postgres_config.sh
 
-  pgadmin:
-    image: dpage/pgadmin4
-    depends_on:
-      - postgres
-    volumes:
-      - ./data/pgadmin/server.json:/pgadmin4/servers.json
-      - ./data/pgadmin/pass:/pgpass
-      - ./data/pgadmin/config.py:/pgadmin4/config_local.py
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "pgadmin4@pgadmin.org"
-      PGADMIN_DEFAULT_PASSWORD: "osm"
-    ports:
-      - "5050:80" 
+    pgadmin:
+        image: dpage/pgadmin4
+        depends_on:
+            - postgres
+        volumes:
+            - ./data/pgadmin/server.json:/pgadmin4/servers.json
+            - ./data/pgadmin/pass:/pgpass
+            - ./data/pgadmin/config.py:/pgadmin4/config_local.py
+        environment:
+            PGADMIN_DEFAULT_EMAIL: "pgadmin4@pgadmin.org"
+            PGADMIN_DEFAULT_PASSWORD: "osm"
+        ports:
+            - "5050:80"
+            # MG
+        logging:
+            driver: none
