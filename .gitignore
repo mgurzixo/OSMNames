@@ -11,3 +11,17 @@ __pycache__/
 .cache/
 
 docs/_build_html/
+
+*.swp
+*.tsv
+*.tsv.gz
+bid*
+*.log
+*.o
+worldsorted
+findhouse
+gennumbers
+housesfcgi
+tinyfcgi
+housenumbersData
+housenumbersIndex

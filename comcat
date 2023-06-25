@@ -1,0 +1,2 @@
+#!/bin/sh
+grep -o -h '^[^#].*' $* 2>/dev/null

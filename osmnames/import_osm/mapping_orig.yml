@@ -120,21 +120,21 @@ tables:
               type: geometry
             - name: type
               type: mapping_value
-            - name: name
+            - key: name:en
+              name: name
               type: string
-              key: name
-            - name: all_tags
+            - key: null
+              name: all_tags
               type: hstore_tags
-              key: null
-            - name: wikipedia
+            - key: wikipedia
+              name: wikipedia
               type: string
-              key: wikipedia
-            - name: wikidata
+            - key: wikidata
+              name: wikidata
               type: string
-              key: wikidata
-            - name: admin_level
+            - key: admin_level
+              name: admin_level
               type: integer
-              key: admin_level
         mapping:
             # https://taginfo.openstreetmap.org/keys/place#values
             place:
@@ -178,18 +178,18 @@ tables:
               type: id
             - name: geometry
               type: geometry
-            - name: name
+            - key: name
+              name: name
               type: string
-              key: name
-            - name: street
+            - key: addr:street
+              name: street
               type: string
-              key: addr:street
-            - name: housenumber
+            - key: addr:housenumber
+              name: housenumber
               type: string
-              key: addr:housenumber
-            - name: place
+            - key: addr:place
+              name: place
               type: string
-              key: addr:place
         type_mappings:
             points:
                 addr:housenumber:
@@ -202,15 +202,15 @@ tables:
         columns:
             - name: osm_id
               type: id
-            - name: name
+            - key: name:en
+              name: name
               type: string
-              key: name
-            - name: type
+            - key: type
+              name: type
               type: string
-              key: type
-            - name: street
+            - key: addr:street
+              name: street
               type: string
-              key: addr:street
         mapping:
             type:
                 - associatedStreet

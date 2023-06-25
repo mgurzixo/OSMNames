@@ -5,9 +5,10 @@ services:
         volumes:
             - .:/osmnames
             - ./data:${DATA_DIR}
+            - /tmp:/tmp
         depends_on:
             - postgres
-        tmpfs: /tmp
+        # tmpfs: /tmp
         env_file: .env
 
     postgres:

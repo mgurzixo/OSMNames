@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 function alter_system() {
-  echo "Altering System parameters (MG5)"
+  echo "Altering System parameters (MG6)"
   PGUSER="$POSTGRES_USER" psql --dbname="$POSTGRES_DB" <<-EOSQL
 
     -- add your postgres configuration here
@@ -12,7 +12,7 @@ function alter_system() {
     -- with alter system option
 
 
-      -- alter system set max_connections = '40';
+      -- alter system set max_connections = '80';
       alter system set shared_buffers = '16GB';
       alter system set effective_cache_size = '48GB';
       alter system set maintenance_work_mem = '2GB';
@@ -47,7 +47,7 @@ function alter_system() {
       -- alter system set temp_buffers = '120MB';
       alter system set timezone = 'UTC';
       alter system set track_counts = 'on';
-      # alter system set log_statement = 'all';
+      -- alter system set log_statement = 'all';
 
 EOSQL
 }
