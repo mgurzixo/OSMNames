@@ -1,23 +1,24 @@
 using namespace std;
 
-#include "gennumbers.h"
-
-#include <fcntl.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <math.h>
 
 #include <cstdint>
 #include <string>
 
+#include "gennumbers.h"
 #include "zkDefs.h"
 
 // TODO check MAX_NB_STREETS MAX_HOUSES_IN_STREET
 
 static int __error_line__;
 static const char* __error_file__;
+
+FILE* fpLog = stderr;
 
 static char* pLine;
 static char line[STRSIZ];
@@ -99,15 +100,6 @@ error:
   return ERR_BAD_LINE;
 }
 
-uint64_t toZk(double lon, double lat) {
-  char zk[64];
-  zkLatLon zkLl;
-  uint64_t res;
-  zkNadsToZk(zkDegToNads(lat), zkDegToNads(lon), &zkLl);
-  res = strtoull(zkLl.zk, NULL, 10);
-  return res;
-}
-
 ZKPLUS makeHouseEntry(sHousenumber* phn) {
   uint64_t zk;
   ZKPLUS zkPlus;
@@ -116,7 +108,7 @@ ZKPLUS makeHouseEntry(sHousenumber* phn) {
   // printf("[makeHouseEntry] line:'%s'\n", line);
   hash = myHash(phn->houseNumber);
 
-  zk = toZk(phn->lon, phn->lat);
+  zk = llToZkn(phn->lon, phn->lat);
   zkPlus = (zk & ~BYTE76) | ((uint64_t)hash << (64 - 16));
 
   if ((phn->streetId == STREETID) && !strcmp(phn->houseNumber, HOUSENUMBER)) {

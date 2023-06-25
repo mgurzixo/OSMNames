@@ -27,8 +27,9 @@ using namespace std;
 
 #define STRSIZ 1024
 #define DEBUG true
-#define LOG \
-  if (DEBUG) printf
+extern FILE* fpLog;
+#define LOG(...) \
+  if (DEBUG) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
 
 // Maximal number of streets in world
 #define MAX_NB_STREETS 1000000000
@@ -85,3 +86,5 @@ struct sIndex {
 
 extern H16 myHash(const char* str);
 extern sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId);
+extern uint64_t llToZkn(double lon, double lat);
+extern char* zknToZk(ZKSNUM zkn0, char* zk);

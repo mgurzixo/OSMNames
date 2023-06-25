@@ -19,18 +19,11 @@ using namespace std;
 static int __error_line__;
 static const char* __error_file__;
 
+FILE* fpLog = stderr;
+
 static unsigned int nbStreets;
 static sIndex* streets;
 static int fdData;
-
-uint64_t toZk(double lon, double lat) {
-  char zk[64];
-  zkLatLon zkLl;
-  uint64_t res;
-  zkNadsToZk(zkDegToNads(lat), zkDegToNads(lon), &zkLl);
-  res = strtoull(zkLl.zk, NULL, 10);
-  return res;
-}
 
 // sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId) {
 //   int low = 0;

@@ -1,23 +1,25 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "fcgi_stdio.h" /* fcgi library; put it first*/
+#include "fcgiapp.h"
+#include "gennumbers.h"
+
+FCGX_Stream *in, *out, *err;
+FCGX_ParamArray envp;
+
 #include "jsmn.h"
 
-// #define bool int
+// #undef LOG
+// #define LOG(...) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
 
-typedef uint64_t OSMID;
-
-#undef LOG
-#define LOG(...) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
-
-#define GOTO_ERROR             \
-  ({                           \
-    __error_line__ = __LINE__; \
-    __error_file__ = __FILE__; \
-    goto error;                \
-  })
+// #define GOTO_ERROR             \
+//   ({                           \
+//     __error_line__ = __LINE__; \
+//     __error_file__ = __FILE__; \
+//     goto error;                \
+//   })
 
 static int __error_line__;
 static const char* __error_file__;
@@ -43,18 +45,14 @@ void logVar(char* varName) {
   LOG("%s:'%s'\n", varName, pc);
 }
 
-void printPair(char* name, char* value) {
-  printf("\"%s\":\"%s\"\r\n", name, value);
-}
-
 void return_error(const char* errorString) {
   LOG("[return_error] %s\n", errorString);
-  printf(
-      "Status: %s\r\n"
-      "Content-type: text/html,; charset=utf-8\r\n"
-      "Access-Control-Allow-Origin: *\r\n"
-      "\r\n",
-      errorString);
+  FCGX_FPrintF(out,
+               "Status: %s\r\n"
+               "Content-type: text/html,; charset=utf-8\r\n"
+               "Access-Control-Allow-Origin: *\r\n"
+               "\r\n",
+               errorString);
 }
 
 struct sQuery {
@@ -222,7 +220,7 @@ error:
   return -1;
 }
 
-int main(int argc, char** argv, char** envp) {
+int main() {
   char* pc;
   char c;
   char body[MAX_INPUT_SIZE + 1];
@@ -231,23 +229,21 @@ int main(int argc, char** argv, char** envp) {
   initialize();
 
   /* Response loop. */
-  while (FCGI_Accept() >= 0) {
+  while (FCGX_Accept(&in, &out, &err, &envp) >= 0) {
     LOG("----\n");
     size_t contentLength;
-    // count = 0;
-    // logVar("REQUEST_METHOD");
-    // logVar("CONTENT_TYPE");
-    // logVar("CONTENT_LENGTH");
-    sscanf(getenv("CONTENT_LENGTH"), "%lu", &contentLength);
-    LOG("contentLength:%u\n", contentLength);
+    const char* pcc;
+
+    pcc = FCGX_GetParam("CONTENT_LENGTH", envp);
+    contentLength = strtol(pcc, NULL, 10);
+    LOG("contentLength:%lu\n", contentLength);
     if (contentLength > MAX_INPUT_SIZE) {
       return_error("413 Request too large");
       continue;
     }
 
     pc = body;
-    while ((c = getchar()) != EOF) {
-      putchar(c);
+    while ((c = FCGX_GetChar(in)) != EOF) {
       // LOG("%c", c);
       *pc++ = c;
     }
@@ -256,11 +252,12 @@ int main(int argc, char** argv, char** envp) {
       return_error("400 Bad Request");
       continue;
     }
-    printf(
-        "Status: 200\r\n"
-        "Content-type: text/html,; charset=utf-8\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
-        "\r\n");
+    FCGX_FPrintF(out,
+                 "Status: 200\r\n"
+                 "Content-type: text/html,; charset=utf-8\r\n"
+                 "Access-Control-Allow-Origin: *\r\n"
+                 "\r\n");
+    FCGX_FPrintF(out, "[]\n");
   }
   return 0;
 error:
