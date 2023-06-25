@@ -19,38 +19,32 @@ using namespace std;
 static int __error_line__;
 static const char* __error_file__;
 
-FILE* fpLog = stderr;
-
 static unsigned int nbStreets;
-static sIndex* streets;
 static int fdData;
+static sIndex* streets;
 
-// sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId) {
-//   int low = 0;
-//   int high = nbStreets - 1;
-//   OSMID si;
-//   // Repeat until the pointers low and high meet each other
-//   while (low <= high) {
-//     int mid = low + (high - low) / 2;
+sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId) {
+  int low = 0;
+  int high = nbStreets - 1;
+  OSMID si;
+  // Repeat until the pointers low and high meet each other
+  while (low <= high) {
+    int mid = low + (high - low) / 2;
 
-//     // Extract streetId (B0-B6)
-//     si = myStreets[mid].streetIdPlus & ~BYTE7;
-//     if (si == streetId)
-//       return myStreets + mid;
+    // Extract streetId (B0-B6)
+    si = myStreets[mid].streetIdPlus & ~BYTE7;
+    if (si == streetId) return myStreets + mid;
 
-//     if (si < streetId)
-//       low = mid + 1;
+    if (si < streetId) low = mid + 1;
 
-//     else
-//       high = mid - 1;
-//   }
+    else high = mid - 1;
+  }
 
-//   return NULL;
-// }
+  return NULL;
+}
 
-ZKSNUM findHouse(sIndex* myStreets, int nbStreets,
-                 //  ZKPLUS* pHouses,
-                 OSMID streetId, const char* houseNum) {
+ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
+                 const char* houseNum) {
   sIndex* pIndex = findStreet(myStreets, nbStreets, streetId);
   int nbEntries = 0;
   uint64_t offset;
@@ -88,35 +82,24 @@ error:
   return INVALID_ZK;
 }
 
-bool myInit() {
+int initHouse(const char* baseName, sIndex** hstreets) {
+  char str[STRSIZ];
   struct stat statBuf;
   int fdIndex;
-  if (stat("bidIndex", &statBuf) < 0) return false;
+  sprintf(str, "%sIndex", baseName);
+  if (stat(str, &statBuf) < 0) return -1;
   nbStreets = statBuf.st_size / sizeof(sIndex);
   printf("[myInit] nbStreets:%d\n", nbStreets);
-  if ((fdIndex = open("bidIndex", O_RDONLY)) < 0) return false;
+  if ((fdIndex = open(str, O_RDONLY)) < 0) return -1;
   streets =
-      (sIndex*)mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fdIndex, 0);
+      (sIndex*)mmap(NULL, statBuf.st_size, PROT_READ, MAP_SHARED, fdIndex, 0);
 
   if (streets == MAP_FAILED) {
     printf("Mapping Failed\n");
-    return 1;
+    return -1;
   }
-  if ((fdData = open("bidData", O_RDONLY)) < 0) return false;
-
-  return true;
-}
-
-int main(int argc, char* argv[]) {
-  ZKSNUM n;
-  if (!myInit()) GOTO_ERROR;
-
-  n = findHouse(streets, nbStreets, STREETID, HOUSENUMBER);
-  printf("Addr: streetId:%d housenumber:'%s' zkn:%ld\n", STREETID, HOUSENUMBER,
-         n);
-  return 0;
-
-error:
-  fprintf(stderr, "Error main (line:%d errno:%d)\n", __error_line__, errno);
-  return (-1);
+  sprintf(str, "%sData", baseName);
+  if ((fdData = open(str, O_RDONLY)) < 0) return -1;
+  *hstreets = streets;
+  return nbStreets;
 }

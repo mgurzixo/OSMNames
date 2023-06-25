@@ -5,21 +5,10 @@
 
 #include "fcgiapp.h"
 #include "gennumbers.h"
+#include "jsmn.h"
 
 FCGX_Stream *in, *out, *err;
 FCGX_ParamArray envp;
-
-#include "jsmn.h"
-
-// #undef LOG
-// #define LOG(...) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
-
-// #define GOTO_ERROR             \
-//   ({                           \
-//     __error_line__ = __LINE__; \
-//     __error_file__ = __FILE__; \
-//     goto error;                \
-//   })
 
 static int __error_line__;
 static const char* __error_file__;
@@ -29,18 +18,23 @@ static const char* __error_file__;
 // Maximal number of housenumbers in a street
 #define MAX_HOUSES_IN_QUERY 1000
 
-jsmn_parser parser;
-jsmntok_t tokens[NB_TOKENS];
+static jsmn_parser parser;
+static jsmntok_t tokens[NB_TOKENS];
+
+static unsigned int nbStreets;
+static sIndex* streets;
 
 FILE* fpLog;
 
 void initialize(void) {
   fpLog = (fopen("fcgi.log", "a"));
   LOG("-------------------------\n");
+  nbStreets = initHouse("bid", &streets);
+  if (nbStreets < 0) LOG("[initialize] Can't initialize streets\n");
 }
 
 void logVar(char* varName) {
-  const char* pc = getenv(varName);
+  const char* pc = FCGX_GetParam(varName, envp);
   if (!pc) pc = "???";
   LOG("%s:'%s'\n", varName, pc);
 }
@@ -58,10 +52,45 @@ void return_error(const char* errorString) {
 struct sQuery {
   OSMID streetId;
   char* pHousenumber;
+  ZKSNUM zkn;
 };
 
 int nbQueries;
 struct sQuery tabQueries[MAX_HOUSES_IN_QUERY];
+
+void doQuery() {
+  H16 hash;
+  struct sQuery* pq;
+  for (int i = 0; i < nbQueries; i++) {
+    pq = tabQueries + i;
+    pq->zkn = findHouse(streets, nbStreets, pq->streetId, pq->pHousenumber);
+    // LOG("[doQuery] streetId:%ld housenumber:'%s' zkn:%ld\n", pq->streetId,
+    // pq->pHousenumber, pq->zkn);
+  }
+  return;
+}
+
+void sendQuery(sQuery* pq) {
+  char zk[15];
+  FCGX_FPrintF(out, "{\"streetId\":%ld,\"housenumber\":\"%s\", \"zk\": \"%s\"}",
+               pq->streetId, pq->pHousenumber, zknToZk(pq->zkn, zk));
+}
+
+void sendReply() {
+  struct sQuery* pq;
+  FCGX_FPrintF(out,
+               "Status: 200\r\n"
+               "Content-type: text/html,; charset=utf-8\r\n"
+               "Access-Control-Allow-Origin: *\r\n"
+               "\r\n");
+  FCGX_FPrintF(out, "[");
+  for (int i = 0; i < nbQueries; i++) {
+    pq = tabQueries + i;
+    sendQuery(pq);
+    if (i < (nbQueries - 1)) FCGX_FPrintF(out, ",");
+  }
+  FCGX_FPrintF(out, "]");
+}
 
 // cf.
 // https://web.archive.org/web/20150214174439/https://alisdair.mcdiarmid.org/2012/08/14/jsmn-example.html
@@ -161,7 +190,7 @@ int parseInput(int len, char* body) {
         state = KEY;
         object_tokens = t->size;
         if (object_tokens == 0) state = STOP;
-        if (object_tokens != 2) GOTO_ERROR;  // 2 keys
+        if (object_tokens != 2) GOTO_ERROR;  // only 2 keys in object
         tabQueries[nbQueries].pHousenumber = NULL;
         tabQueries[nbQueries].streetId = -1;
         nbQueries++;
@@ -183,7 +212,8 @@ int parseInput(int len, char* body) {
           streetId = 0;
           sscanf(pStreetId, "%lu", &streetId);
           if (!streetId) GOTO_ERROR;
-          // LOG("[parseInput] #%d pStreetId:'%s' streetId:%lu\n", nbQueries,
+          // LOG("[parseInput] #%d pStreetId:'%s' streetId:%lu\n",
+          // nbQueries,
           //     pStreetId, streetId);
           tabQueries[nbQueries - 1].streetId = streetId;
         } else if (!strcmp(pKey, "housenumber")) {
@@ -213,7 +243,7 @@ int parseInput(int len, char* body) {
     }
   }
   // LOG("[parseInput] got %d queries\n", nbQueries);
-  logQuery(tabQueries, nbQueries);
+  // logQuery(tabQueries, nbQueries);
   return nbQueries;
 error:
   LOG("[parseInput] Error line:%d\n", __error_line__);
@@ -242,6 +272,10 @@ int main() {
       continue;
     }
 
+    if (nbStreets < 0) {
+      return_error("500 Internal Server Error");
+      continue;
+    }
     pc = body;
     while ((c = FCGX_GetChar(in)) != EOF) {
       // LOG("%c", c);
@@ -252,12 +286,14 @@ int main() {
       return_error("400 Bad Request");
       continue;
     }
-    FCGX_FPrintF(out,
-                 "Status: 200\r\n"
-                 "Content-type: text/html,; charset=utf-8\r\n"
-                 "Access-Control-Allow-Origin: *\r\n"
-                 "\r\n");
-    FCGX_FPrintF(out, "[]\n");
+    doQuery();
+    // FCGX_FPrintF(out,
+    //              "Status: 200\r\n"
+    //              "Content-type: text/html,; charset=utf-8\r\n"
+    //              "Access-Control-Allow-Origin: *\r\n"
+    //              "\r\n");
+    // FCGX_FPrintF(out, "[]\n");
+    sendReply();
   }
   return 0;
 error:

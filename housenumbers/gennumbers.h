@@ -84,7 +84,12 @@ struct sIndex {
 #define decodeHash(entry) ((entry >> (64 - 16)) & 0xffff)
 #define decodeZkn(entry) (entry & ~BYTE76)
 
-extern H16 myHash(const char* str);
-extern sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId);
+extern H16 myHash(const char* str);  // utils
+
 extern uint64_t llToZkn(double lon, double lat);
 extern char* zknToZk(ZKSNUM zkn0, char* zk);
+
+extern sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId);
+extern ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
+                        const char* houseNum);
+extern int initHouse(const char* baseName, sIndex** hstreets);

@@ -19,7 +19,7 @@ bid*
 *.log
 *.o
 worldsorted
-findhouse
+testhouse
 gennumbers
 housesfcgi
 tinyfcgi
