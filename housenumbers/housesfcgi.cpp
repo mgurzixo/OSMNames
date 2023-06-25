@@ -72,8 +72,11 @@ void doQuery() {
 
 void sendQuery(sQuery* pq) {
   char zk[15];
+  char* pzk = zknToZk(pq->zkn, zk);
   FCGX_FPrintF(out, "{\"streetId\":%ld,\"housenumber\":\"%s\", \"zk\": \"%s\"}",
-               pq->streetId, pq->pHousenumber, zknToZk(pq->zkn, zk));
+               pq->streetId, pq->pHousenumber, pzk);
+  LOG("[doQuery] streetId:%ld housenumber:'%s' zkn:%s\n", pq->streetId,
+      pq->pHousenumber, pzk);
 }
 
 void sendReply() {
@@ -266,7 +269,7 @@ int main() {
 
     pcc = FCGX_GetParam("CONTENT_LENGTH", envp);
     contentLength = strtol(pcc, NULL, 10);
-    LOG("contentLength:%lu\n", contentLength);
+    // LOG("contentLength:%lu\n", contentLength);
     if (contentLength > MAX_INPUT_SIZE) {
       return_error("413 Request too large");
       continue;
