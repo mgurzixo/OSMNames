@@ -2,13 +2,16 @@
 # Filter & sort housenumber file by street_id
 
 echo Filtering housenumbers...
-# rm -f -r housenumbers_world.tsv
-# # remove first line (columns names)
-# for i in $(../comcountries ../pbf_file_url); do
-#     tail -n +2 ../data/export/${i}_housenumbers.tsv >>world.tsv
-# done
+# remove first line (columns names)
+rm -f -r housenumbers_world.tsv
+for i in $(../comcountries ../pbf_file_url); do
+    echo $i
+    tail -n +2 ../data/export/${i}_housenumbers.tsv >>world.tsv
+done
 echo Sorting housenumbers and generating files...
-sort -u -n -t "$(printf "\t")" -k 1,1 <world.tsv | sort -n -t "$(printf "\t")" -k 2,2 -k 4,4 >bid
+sort -u -n -t "$(printf "\t")" -k 1,1 <world.tsv >bid0
+echo Sorting unique done
+sort -n -t "$(printf "\t")" -k 2,2 -k 4,4 <bid0 >bid1
 echo Sorting done
-./gennumbers <bid
+./gennumbers <bid1
 echo done.

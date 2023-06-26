@@ -29,7 +29,7 @@ FILE* fpLog;
 void initialize(void) {
   fpLog = (fopen("fcgi.log", "a"));
   LOG("-------------------------\n");
-  nbStreets = initHouse("bid", &streets);
+  nbStreets = initHouse("housenumbers", &streets);
   if (nbStreets < 0) LOG("[initialize] Can't initialize streets\n");
 }
 
@@ -290,12 +290,6 @@ int main() {
       continue;
     }
     doQuery();
-    // FCGX_FPrintF(out,
-    //              "Status: 200\r\n"
-    //              "Content-type: text/html,; charset=utf-8\r\n"
-    //              "Access-Control-Allow-Origin: *\r\n"
-    //              "\r\n");
-    // FCGX_FPrintF(out, "[]\n");
     sendReply();
   }
   return 0;

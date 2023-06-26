@@ -9,7 +9,7 @@ CFLAGS=-mcmodel=large -g
 CPPFLAGS=$(CFLAGS)
 CC=gcc
 CPP=g++
-PROGRAMS= gennumbers testhouse tinyfcgi housesfcgi
+PROGRAMS= gennumbers testhouse tinyfcgi housesfcgi fixnegativeId
 .PHONY: all
 
 ZKOBJS=$(ZKC)/zonKod.o $(ZKC)/zkUtils.o $(ZKJS)/zkBands.o utils.o
@@ -26,6 +26,10 @@ OBJS=findhouse.o utils.o
 all: $(PROGRAMS)
 
 $(OBJS):$(ZKINCS)
+
+
+fixnegativeId: fixnegativeId.o 
+	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lm
 
 gennumbers: gennumbers.o $(ZKOBJS) ${OBJS}
 	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lm

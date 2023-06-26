@@ -38,7 +38,7 @@ extern FILE* fpLog;
 #define MAX_HOUSES_IN_STREET 10000
 
 typedef uint16_t H16;
-typedef uint64_t OSMID;
+typedef int64_t OSMID;
 typedef int64_t ZKSNUM;  // Zonkod as a number, or INVALID_ZK
 #define INVALID_ZK (-1)
 

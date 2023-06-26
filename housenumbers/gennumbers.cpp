@@ -47,11 +47,14 @@ char getMot(FILE* fp) {
     }
   }
   *pca = 0;
-  fprintf(stderr, "Error getMot motlu:'%s' str:'%s'\n", motlu, line);
+  LOG("Error getMot motlu:'%s' str:'%s'\n", motlu, line);
   return 0;
 }
 
+int nbNegativeIds = 0;
+
 int getHn(FILE* fp, sHousenumber* phn) {
+  OSMID osmId;
   if (!fgets(line, sizeof(line), fp)) return ERR_EOF;
   pLine = line;
 
@@ -59,14 +62,24 @@ int getHn(FILE* fp, sHousenumber* phn) {
   if (getMot(fp) != '\t') GOTO_ERROR;
   if (!*motlu) GOTO_ERROR;
   // LOG("osm_id:'%s'\n", motlu);
-  phn->osmId = strtoull(motlu, NULL, 10);
+  osmId = strtoull(motlu, NULL, 10);
+  if (osmId < 0) {
+    nbNegativeIds++;
+    goto error2;
+  }
+  phn->osmId = osmId;
   if (!phn->osmId) GOTO_ERROR;
 
   // street_id
   if (getMot(fp) != '\t') GOTO_ERROR;
   if (!*motlu) GOTO_ERROR;
   // LOG("street_id:'%s'\n", motlu);
-  phn->streetId = strtoull(motlu, NULL, 10);
+  osmId = strtoull(motlu, NULL, 10);
+  if (osmId < 0) {
+    LOG("[getHn] negative streetId:%ld Skipping\n", osmId);
+    goto error2;
+  }
+  phn->streetId = osmId;
   if (!phn->streetId) GOTO_ERROR;
 
   // street
@@ -96,7 +109,8 @@ int getHn(FILE* fp, sHousenumber* phn) {
   // LOG("----------\n");
   return ERR_OK;
 error:
-  fprintf(stderr, "Error getHn line:%d str:'%s'\n", __error_line__, line);
+  LOG("Error getHn line:%d str:'%s'\n", __error_line__, line);
+error2:
   return ERR_BAD_LINE;
 }
 
@@ -105,15 +119,14 @@ ZKPLUS makeHouseEntry(sHousenumber* phn) {
   ZKPLUS zkPlus;
   uint16_t hash;
 
-  // printf("[makeHouseEntry] line:'%s'\n", line);
+  // LOG("[makeHouseEntry] line:'%s'\n", line);
   hash = myHash(phn->houseNumber);
 
   zk = llToZkn(phn->lon, phn->lat);
   zkPlus = (zk & ~BYTE76) | ((uint64_t)hash << (64 - 16));
 
   if ((phn->streetId == STREETID) && !strcmp(phn->houseNumber, HOUSENUMBER)) {
-    printf(
-        "[makeHouseEntry] streetId:%ld #:'%s' hash:0x%04x zk:%ld "
+    LOG("[makeHouseEntry] streetId:%ld #:'%s' hash:0x%04x zk:%ld "
         "zkPlus:0x%08lx\n",
         phn->streetId, phn->houseNumber, hash, zk, zkPlus);
   }
@@ -122,7 +135,7 @@ ZKPLUS makeHouseEntry(sHousenumber* phn) {
 
 void makeStreetEntry(unsigned int streetId, int nbEntries, ssize_t offset,
                      sIndex* pEntry) {
-  // printf("[makeStreetEntry]'\n");
+  // LOG("[makeStreetEntry]'\n");
   pEntry->streetIdPlus = (streetId & ~BYTE7) | (STREETIDPLUS)(nbEntries & 0xff)
                                                    << (64 - 8);
   pEntry->offsetPlus = (offset & ~BYTE7) | (STREETIDPLUS)(nbEntries & 0xff00)
@@ -159,8 +172,8 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
                         streets + nbStreets);
         if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
         if (currentStreetId == STREETID) {
-          printf("[doIt] streetId:%ld offset:%ld %d entries\n", hn.streetId,
-                 currentOffset, nbEntries);
+          LOG("[doIt] streetId:%ld offset:%ld %d entries\n", hn.streetId,
+              currentOffset, nbEntries);
         }
 
         ++nbStreets;
@@ -178,16 +191,18 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
     houses[nbEntries] = makeHouseEntry(&hn);
     nbEntries++;
     if (nbEntries >= MAX_HOUSES_IN_STREET) {
-      printf("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n",
-             nbEntries, currentStreetId);
+      LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n",
+          nbEntries, currentStreetId);
       GOTO_ERROR;
     }
   }
-  printf("nb streets:%d nb houses:%d\n", nbStreets, nbHouses);
+  LOG("Nb streets:%d Nb houses:%d\n", nbStreets, nbHouses);
+  LOG("Nb negative Ids:%d\n", nbNegativeIds);
+
   if (write(fdIndex, streets, nbStreets * sizeof(sIndex)) < 0) GOTO_ERROR;
   return;
 error:
-  fprintf(stderr, "Error doIt line:%d\n", __error_line__);
+  LOG("Error doIt line:%d\n", __error_line__);
   return;
 }
 
@@ -211,6 +226,6 @@ int main(int argc, char* argv[]) {
   return 0;
 
 error:
-  fprintf(stderr, "Error main (line:%d errno:%d)\n", __error_line__, errno);
+  LOG("Error main (line:%d errno:%d)\n", __error_line__, errno);
   return (-1);
 }
