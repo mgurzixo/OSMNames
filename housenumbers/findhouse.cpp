@@ -89,7 +89,7 @@ int initHouse(const char* baseName, sIndex** hstreets) {
   sprintf(str, "%sIndex", baseName);
   if (stat(str, &statBuf) < 0) return -1;
   nbStreets = statBuf.st_size / sizeof(sIndex);
-  printf("[myInit] nbStreets:%d\n", nbStreets);
+  printf("[myInit] nbStreets from houseNums:%d\n", nbStreets);
   if ((fdIndex = open(str, O_RDONLY)) < 0) return -1;
   streets =
       (sIndex*)mmap(NULL, statBuf.st_size, PROT_READ, MAP_SHARED, fdIndex, 0);

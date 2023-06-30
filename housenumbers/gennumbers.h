@@ -117,6 +117,7 @@ struct sIndex {
 #define NB_GEOFIELDS 24
 struct sStreet {
   BYTE* fields[NB_GEOFIELDS];
+  OSMID osmId;
 };
 
 extern BYTE motlu[100 * 1024];
@@ -124,6 +125,7 @@ extern int maxFieldSize;
 extern char getMot(FILE* fp);
 
 extern H16 myHash(const char* str);  // utils
+extern char* trimwhitespace(char* str);
 
 extern uint64_t llToZkn(double lon, double lat);
 extern char* zknToZk(ZKSNUM zkn0, char* zk);

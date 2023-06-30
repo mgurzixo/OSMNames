@@ -57,6 +57,7 @@ int nbNegativeIds = 0;
 int getHn(FILE* fp, sHousenumber* phn) {
   OSMID osmId;
   char tok;
+  char* pc;
   // if (!fgets(line, sizeof(line), fp)) return ERR_EOF;
   // pLine = line;
 
@@ -97,7 +98,9 @@ int getHn(FILE* fp, sHousenumber* phn) {
   if (tok != '\t') GOTO_ERROR;
   if (!*motlu) GOTO_ERROR;
   // LOG("housenumber:'%s'\n", motlu);
-  strncpy(phn->houseNumber, (char*)motlu, 64);
+  pc = trimwhitespace((char*)motlu);
+  if (!*pc) GOTO_ERROR;
+  strncpy(phn->houseNumber, pc, 64);
 
   // lon
   tok = getMot(fp);
@@ -199,7 +202,7 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
         ++nbStreets;
         currentOffset += nbEntries * sizeof(ZKPLUS);
         nbHouses += nbEntries;
-        if (!(nbStreets % 1000)) LOG("nbStreets:%d\n", nbStreets);
+        if (!(nbStreets % 100000)) LOG("nbStreets:%d\n", nbStreets);
       }
 
       currentStreetId = hn.streetId;

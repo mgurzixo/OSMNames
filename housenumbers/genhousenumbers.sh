@@ -58,6 +58,6 @@ echo Generating ${outname}Index and ${outname}Data
 
 echo Sorting ${outname}_geo.tsv by osm_id ...
 sort -n -t "$(printf "\t")" -k 4,4 <${outname}_geo.tsv >${outname}_geo1.tsv
-echo Generating $(outname)_search.tsv
+echo Generating ${outname}_search0.tsv
 ./mergestreets ${outname}
 echo done.

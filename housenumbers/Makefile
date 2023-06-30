@@ -4,17 +4,28 @@ ZKJS=$(BASE)/zkjs
 JSMN=$(BASE)/jsmn
 
 INCDIRS= -I. -I$(ZKC) -I$(ZKJS) -I$(JSMN)
-# CFLAGS=-O3 -mcmodel=large -g
-CFLAGS=-mcmodel=large -g
+
+PROFILE_FLAGS=
+# PROFILE_FLAGS=-pg
+# PROFILE_FLAGS=-pg -fprofile-arcs -ftest-coverage
+
+LDFLAGS=
+# LDFLAGS=--no-relax 
+
+CFLAGS=-O3 $(PROFILE_FLAGS) -mcmodel=large -g
+# CFLAGS=-O0 $(PROFILE_FLAGS)  -g
+# CFLAGS=-mcmodel=large -g
+
 CPPFLAGS=$(CFLAGS)
 CC=gcc
 CPP=g++
-PROGRAMS= gennumbers testhouse tinyfcgi housesfcgi mergestreets
+BINARIES= gennumbers testhouse tinyfcgi housesfcgi mergestreets
 .PHONY: all
+LIBS=-ltcmalloc -lm
 
-ZKOBJS=$(ZKC)/zonKod.o $(ZKC)/zkUtils.o $(ZKJS)/zkBands.o utils.o
+ZKOBJS=$(ZKC)/zonKod.o $(ZKC)/zkUtils.o $(ZKJS)/zkBands.o
 ZKINCS=gennumbers.h
-OBJS=findhouse.o utils.o
+OBJS=utils.o
 TEST_COUNTRY=paris
 
 ### Rules ###
@@ -24,25 +35,25 @@ TEST_COUNTRY=paris
 %.o : %.cpp
 	$(CPP) $(INCDIRS) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
-all: $(PROGRAMS)
+all: $(BINARIES)
 
 $(OBJS):$(ZKINCS)
 
 
-mergestreets: mergestreets.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lm
+mergestreets: mergestreets.o findhouse.o $(ZKOBJS) ${OBJS}
+	$(CPP) $(INCDIRS) $(CFLAGS)  $(LDFLAGS) -o $@  $^ $(LIBS)
 
-gennumbers: gennumbers.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lm
+gennumbers: gennumbers.o findhouse.o $(ZKOBJS) ${OBJS}
+	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ $(LIBS)
 
-testhouse: testhouse.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lm
+testhouse: testhouse.o findhouse.o $(ZKOBJS) ${OBJS}
+	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ $(LIBS)
 
 tinyfcgi: tinyfcgi.o
-	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lfcgi -lm
+	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ -lfcgi $(LIBS)
 
-housesfcgi: housesfcgi.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS) -o $@  $^ -lfcgi -lm
+housesfcgi: housesfcgi.o findhouse.o $(ZKOBJS) ${OBJS}
+	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ -lfcgi $(LIBS)
 
 rtest:
 	- killall -9 housesfcgi
@@ -69,4 +80,4 @@ test: gennumbers housesfcgi
 
 
 clean :
-	rm -f *.o gennumbers
+	rm -f *.o $(BINARIES)

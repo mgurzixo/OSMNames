@@ -39,50 +39,77 @@ char getMot(FILE* fp) {
   BYTE c;
   int fieldSize = 0;
   for (pca = motlu;;) {
-    if (fieldSize > maxFieldSize) maxFieldSize = fieldSize;
+    if (fieldSize >= (sizeof(motlu) - 5)) GOTO_ERROR;
     c = getc(fp);
-    switch (c) {
-      case '\t':
-      case '\n':
-      case (BYTE)EOF:
-        *pca = 0;
-        // LOG("[getMot] c:'%c' motlu:'%s'\n", c, motlu);
-        return (c);
-      default:
-        if (c < 0x80) {
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = c;
-        } else if (c < 0xc0) GOTO_ERROR;
-        else if (c < 0xe0) {  // 2 byte UTF-8
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = c;
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-        } else if (c < 0xf0) {  // 3 byte UTF-8
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = c;
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-        } else if (c < 0xf8) {  // 4 byte UTF-8
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = c;
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-          INCREMENT_FIELD_LENGTH;
-          *pca++ = getc(fp);
-        } else GOTO_ERROR;
-    }
+    if (c < 0x20) {
+      *pca = 0;
+      //     // LOG("[getMot] c:'%c' motlu:'%s'\n", c, motlu);
+      if (fieldSize > maxFieldSize) maxFieldSize = fieldSize;
+      return (c);
+    } else if (c < 0x80) {
+      fieldSize += 1;
+      *pca++ = c;
+    } else if (c < 0xc0) GOTO_ERROR;
+    else if (c < 0xe0) {  // 2 byte UTF-8
+      fieldSize += 2;
+      *pca++ = c;
+      *pca++ = getc(fp);
+    } else if (c < 0xf0) {  // 3 byte UTF-8
+      fieldSize += 3;
+      *pca++ = c;
+      *pca++ = getc(fp);
+      *pca++ = getc(fp);
+    } else if (c < 0xf8) {  // 4 byte UTF-8
+      fieldSize += 4;
+      *pca++ = c;
+      *pca++ = getc(fp);
+      *pca++ = getc(fp);
+      *pca++ = getc(fp);
+    } else if (c == 0xff) {
+      *pca = 0;
+      // LOG("[getMot] c:'%c' motlu:'%s'\n", c, motlu);
+      if (fieldSize > maxFieldSize) maxFieldSize = fieldSize;
+      return (c);
+    } else GOTO_ERROR;
   }
   GOTO_ERROR;
 error:
   *pca = 0;
-  LOG("[getMot] ERROR@%d\n", __error_line__);
+  LOG("[getMot] c:0x%02x ERROR@%d\n", c, __error_line__);
+  if (fieldSize > maxFieldSize) maxFieldSize = fieldSize;
   return 0;
 }
+
+// switch (c) {
+//   case '\t':
+//   case '\n':
+//   case (BYTE)EOF:
+//     *pca = 0;
+//     // LOG("[getMot] c:'%c' motlu:'%s'\n", c, motlu);
+//     return (c);
+//   default:
+//     if (fieldSize >= (sizeof(motlu) - 4)) GOTO_ERROR;
+//     if (c < 0x80) {
+//       fieldSize += 1;
+//       *pca++ = c;
+//     } else if (c < 0xc0) GOTO_ERROR;
+//     else if (c < 0xe0) {  // 2 byte UTF-8
+//       fieldSize += 2;
+//       *pca++ = c;
+//       *pca++ = getc(fp);
+//     } else if (c < 0xf0) {  // 3 byte UTF-8
+//       fieldSize += 3;
+//       *pca++ = c;
+//       *pca++ = getc(fp);
+//       *pca++ = getc(fp);
+//     } else if (c < 0xf8) {  // 4 byte UTF-8
+//       fieldSize += 4;
+//       *pca++ = c;
+//       *pca++ = getc(fp);
+//       *pca++ = getc(fp);
+//       *pca++ = getc(fp);
+//     } else GOTO_ERROR;
+// }
 
 // sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId) {
 //   int low = 0;
@@ -135,4 +162,23 @@ char* zknToZk(ZKSNUM zkn0, char* zk) {
   zk[14] = 0;
   // LOG("[zknToZk] zkn0:%ld zk:'%s'\n", zkn0, zk);
   return zk;
+}
+
+// Modifies string
+char* trimwhitespace(char* str) {
+  char* end;
+  // Trim leading space
+  while (isspace((unsigned char)*str)) str++;
+
+  if (*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while (end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
 }
