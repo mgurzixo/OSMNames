@@ -11,6 +11,10 @@ using namespace std;
 
 #include "zkDefs.h"
 
+typedef char UTF8;           // for code units of UTF-8 strings
+typedef unsigned char BYTE;  // for binary data
+#define BEOF ((BYTE)-1)
+
 #define STREETID 4527645
 #define HOUSENUMBER "25 bis"
 
@@ -21,13 +25,38 @@ using namespace std;
     goto error;                \
   })
 
+// Alloc / Free blocs
+inline void* MALLOC(const size_t x) {
+  void* p;
+  if (!(p = malloc(x))) {
+    fprintf(stderr, "Can't malloc %lu bytes\n", (unsigned long)(x));
+    exit(-1);
+  }
+  return (p);
+}
+
+inline void FREE(void* x) {
+  if (x) free(x);
+}
+
+#define RAZ(x) (FREE(x), x = 0)
+
+inline BYTE* XMCPY(const BYTE* str) {
+  size_t len = strlen((char*)str);
+  BYTE* pc = (BYTE*)MALLOC(len + 1);
+  strcpy((char*)pc, (char*)str);
+  return pc;
+}
+
 #define BYTE7 0xFF00000000000000
 #define BYTE6 0xFF000000000000
 #define BYTE76 0xFFFF000000000000
 
 #define STRSIZ 1024
 #define DEBUG true
+
 extern FILE* fpLog;
+
 #define LOG(...) \
   if (DEBUG) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
 
@@ -83,6 +112,16 @@ struct sIndex {
 
 #define decodeHash(entry) ((entry >> (64 - 16)) & 0xffff)
 #define decodeZkn(entry) (entry & ~BYTE76)
+
+// mergestreets
+#define NB_GEOFIELDS 24
+struct sStreet {
+  BYTE* fields[NB_GEOFIELDS];
+};
+
+extern BYTE motlu[100 * 1024];
+extern int maxFieldSize;
+extern char getMot(FILE* fp);
 
 extern H16 myHash(const char* str);  // utils
 

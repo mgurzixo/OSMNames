@@ -1,0 +1,4 @@
+#!/bin/sh
+export PBF_FILE=paris.osm.pbf
+export SKIP_VACUUM=True
+time docker-compose run --rm osmnames

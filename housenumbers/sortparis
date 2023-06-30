@@ -1,0 +1,14 @@
+#!/bin/sh
+# Filter & sort housenumber file by street_id
+
+echo Filtering housenumbers...
+# remove first line (columns names)
+rm -f -r paris_housenumbers.tsv
+tail -n +2 ../data/export/paris_housenumbers.tsv >>paris.tsv
+echo Sorting housenumbers and generating files...
+sort -u -n -t "$(printf "\t")" -k 1,1 <paris.tsv >bid0
+echo Sorting unique done
+sort -n -t "$(printf "\t")" -k 2,2 -k 4,4 <bid0 >bid1
+echo Sorting done
+./gennumbers <bid1
+echo done.

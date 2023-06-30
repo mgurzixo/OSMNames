@@ -70,7 +70,7 @@ void doQuery() {
   return;
 }
 
-void sendQuery(sQuery* pq) {
+void returnQuery(sQuery* pq) {
   char zk[15];
   char* pzk = zknToZk(pq->zkn, zk);
   FCGX_FPrintF(out, "{\"streetId\":%ld,\"housenumber\":\"%s\", \"zk\": \"%s\"}",
@@ -89,7 +89,7 @@ void sendReply() {
   FCGX_FPrintF(out, "[");
   for (int i = 0; i < nbQueries; i++) {
     pq = tabQueries + i;
-    sendQuery(pq);
+    returnQuery(pq);
     if (i < (nbQueries - 1)) FCGX_FPrintF(out, ",");
   }
   FCGX_FPrintF(out, "]");

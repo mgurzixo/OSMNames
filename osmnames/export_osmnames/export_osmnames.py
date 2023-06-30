@@ -17,7 +17,7 @@ def export_osmnames():
     create_export_dir()
     export_geonames()
     export_housenumbers()
-    gzip_tsv_files()
+    # gzip_tsv_files()
 
 
 def create_functions():
@@ -41,7 +41,8 @@ def create_views():
 
 
 def create_polygons_view():
-    exec_sql_from_file("create_polygons_view.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_polygons_view.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def create_points_view():
@@ -49,19 +50,23 @@ def create_points_view():
 
 
 def create_linestrings_view():
-    exec_sql_from_file("create_linestrings_view.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_linestrings_view.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def create_merged_linestrings_view():
-    exec_sql_from_file("create_merged_linestrings_view.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_merged_linestrings_view.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def create_housenumbers_view():
-    exec_sql_from_file("create_housenumbers_view.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_housenumbers_view.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def create_geonames_view():
-    exec_sql_from_file("create_geonames_view.sql", cwd=os.path.dirname(__file__))
+    exec_sql_from_file("create_geonames_view.sql",
+                       cwd=os.path.dirname(__file__))
 
 
 def create_export_dir():
@@ -71,7 +76,8 @@ def create_export_dir():
 
 def export_geonames():
     log.info("export geonames to {}".format(geonames_export_path()))
-    export_to_tsv("SELECT * FROM geonames_view ORDER BY importance DESC NULLS LAST", geonames_export_path())
+    export_to_tsv(
+        "SELECT * FROM geonames_view ORDER BY importance DESC NULLS LAST", geonames_export_path())
 
 
 def export_housenumbers():
@@ -86,7 +92,7 @@ def export_to_tsv(query, path):
         "-o", path,
         settings.get("DB_USER"),
         settings.get("DB_NAME"),
-        ])
+    ])
 
 
 def gzip_tsv_files():
@@ -104,5 +110,6 @@ def housenumbers_export_path():
 
 
 def imported_pbf_filename():
-    filename_with_suffix = settings.get("PBF_FILE") or settings.get("PBF_FILE_URL").split('/')[-1]
+    filename_with_suffix = settings.get(
+        "PBF_FILE") or settings.get("PBF_FILE_URL").split('/')[-1]
     return filename_with_suffix.split(".")[0]
