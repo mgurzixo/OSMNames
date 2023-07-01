@@ -12,7 +12,8 @@ PROFILE_FLAGS=
 LDFLAGS=
 # LDFLAGS=--no-relax 
 
-CFLAGS=-O3 $(PROFILE_FLAGS) -mcmodel=large -g
+# CFLAGS=-O3 $(PROFILE_FLAGS) -mcmodel=large -g
+CFLAGS=-Og $(PROFILE_FLAGS) -mcmodel=large -g
 # CFLAGS=-O0 $(PROFILE_FLAGS)  -g
 # CFLAGS=-mcmodel=large -g
 

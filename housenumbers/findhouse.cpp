@@ -56,12 +56,12 @@ ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
 
   if (!pIndex) return INVALID_ZK;
 
-  printf("[findHouse] h16:0x%04x\n", h16);
+  // printf("[findHouse] h16:0x%04x\n", h16);
 
   nbEntries = decodeNbEntries(pIndex);
   offset = decodeOffset(pIndex);
 
-  printf("[findHouse] offset:%ld nbEntries:%d\n", offset, nbEntries);
+  // printf("[findHouse] offset:%ld nbEntries:%d\n", offset, nbEntries);
 
   if ((lseek(fdData, offset, SEEK_SET)) < 0) GOTO_ERROR;
   count = nbEntries * sizeof(ZKPLUS);
@@ -71,7 +71,7 @@ ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
   for (i = 0; i < nbEntries; i++) {
     H16 h = decodeHash(entries[i]);
     if (h == h16) {
-      printf("[findHouse] i:%d h:0x%04x zkPlus:0x%08lx\n", i, h, entries[i]);
+      // printf("[findHouse] i:%d h:0x%04x zkPlus:0x%08lx\n", i, h, entries[i]);
       zkn = decodeZkn(entries[i]);
       break;
     }

@@ -54,7 +54,7 @@ done
 echo Sorting ${outname}_hn.tsv by street_id ...
 sort -n -t "$(printf "\t")" -k 2,2 -k 4,4 <${outname}_hn.tsv >${outname}_hn1.tsv
 echo Generating ${outname}Index and ${outname}Data
-./gennumbers ${outname} <${outname}_hn1.tsv
+./gennumbers ${outname} ${outname}_hn1.tsv
 
 echo Sorting ${outname}_geo.tsv by osm_id ...
 sort -n -t "$(printf "\t")" -k 4,4 <${outname}_geo.tsv >${outname}_geo1.tsv

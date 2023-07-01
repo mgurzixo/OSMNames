@@ -20,7 +20,7 @@ static const char* __error_file__;
 FILE* fpLog = stderr;
 
 static unsigned int nbHouseStreets;
-static sIndex* streets;
+static sIndex* houseStreets;
 
 // static BYTE motlu[100 * 1024];
 
@@ -113,15 +113,16 @@ void makeHnTab(sStreet* pStreet, char** tabHn, int* pNbHn) {
   BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
   if (!*ps) return;
   *pNbHn = 0;
+  int nbHn = 0;
   char* pch = strtok((char*)ps, ",");
   while (pch != NULL) {
     bool found = false;
     char* pt = trimwhitespace(pch);
     if (!pt) found = true;
     else {
-      // LOG("[mHn]   To: n:%d '%s'\n", *pNbHn, pch);
-      for (int i = 0; i < *pNbHn; i++) {
-        // LOG("[mHn] nbHn:%d i:'%d'\n", *pNbHn, i);
+      // LOG("[mHn] pt:'%s'\n", pt);
+      for (int i = 0; i < nbHn; i++) {
+        // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
         if (!strcmp(tabHn[i], pt)) {
           // LOG("[removeDuplicateHn] DUP:'%s'\n", pch);
           found = true;
@@ -129,9 +130,15 @@ void makeHnTab(sStreet* pStreet, char** tabHn, int* pNbHn) {
         }
       }
     }
-    if (!found) tabHn[*pNbHn++] = pt;
+    if (!found) tabHn[nbHn++] = pt;
     pch = strtok(NULL, ",");
   }
+  *pNbHn = nbHn;
+}
+
+static void copyStringIntoField(sStreet* pInto, int fieldNum, BYTE* str) {
+  FREE(pInto->fields[fieldNum]);
+  pInto->fields[fieldNum] = XMCPY(str);
 }
 
 void putHnTab(sStreet* pStreet, char** tabHn, int nbHn) {
@@ -148,13 +155,25 @@ void putHnTab(sStreet* pStreet, char** tabHn, int nbHn) {
   copyStringIntoField(pStreet, F_STREET_HOUSENUMBERS, (BYTE*)bufHn);
 }
 
+int nbHousesNotFound = 0;
+int nbHousesFound = 0;
+
 static void setupHouseNumbers(sStreet* pStreet) {
   BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
   if (!*ps) return;
   char* tabHn[MAX_HOUSES_IN_STREET];  // TODO Check overflow
   int nbHn = 0;
+  ZKSNUM zksnum;
   makeHnTab(pStreet, tabHn, &nbHn);
-  // ICI
+  for (int i = 0; i < nbHn; i++) {
+    zksnum = findHouse(houseStreets, nbHouseStreets, pStreet->osmId, tabHn[i]);
+    if (zksnum == INVALID_ZK) {
+      nbHousesNotFound++;
+      if (nbHousesNotFound < 5)
+        LOG("setupHouseNumbers] streetId:%ld hN:'%s' zksn:%ld\n",
+            pStreet->osmId, tabHn[i], zksnum);
+    } else nbHousesFound++;
+  }
   putHnTab(pStreet, tabHn, nbHn);
 }
 
@@ -165,11 +184,6 @@ static void outputStreet(FILE* fp, sStreet* pStreet) {
     if (i != (NB_GEOFIELDS - 1)) fputc('\t', fp);
     else fputc('\n', fp);
   }
-}
-
-static void copyStringIntoField(sStreet* pInto, int fieldNum, BYTE* str) {
-  FREE(pInto->fields[fieldNum]);
-  pInto->fields[fieldNum] = XMCPY(str);
 }
 
 static void copyField(sStreet* pInto, sStreet* pFrom, int fieldNum) {
@@ -360,7 +374,10 @@ static void doIt(FILE* fpi, FILE* fpo) {
     pStreet = newStreet();
   }
   if (pStreet->fields[F_STREET_ID]) outputStreet(fpo, pStreet);
-  printf("nb geom entries:%d maxFieldSize:%d \n", nbStreets, maxFieldSize);
+  LOG("nb geom entries:%d maxFieldSize:%d \n", nbStreets, maxFieldSize);
+  LOG("nbHousesFound:%d nbHousesNotFound:%d (%.2f)\n", nbHousesFound,
+      nbHousesNotFound,
+      (nbHousesNotFound * 100.) / (nbHousesNotFound + nbHousesFound));
   freeStreet(pStreet);
   return;
 error:
@@ -379,8 +396,8 @@ int main(int argc, char* argv[]) {
     return (-1);
   }
   const char* basename = argv[1];
-  nbStreets = initHouse(basename, &streets);
-  if (nbStreets < 0) GOTO_ERROR;
+  nbHouseStreets = initHouse(basename, &houseStreets);
+  if (nbHouseStreets < 0) GOTO_ERROR;
   sprintf(str, "%s_geo1.tsv", basename);
   LOG("[main] reading '%s'\n", str);
   if (!(fpi = fopen(str, "r"))) GOTO_ERROR;

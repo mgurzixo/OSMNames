@@ -188,6 +188,50 @@ void makeStreetEntry(unsigned int streetId, int nbEntries, ssize_t offset,
                                                << (64 - 8 - 8);
 }
 
+void processHn(FILE* fp, int fdData, int fdIndex, sHousenumber* pHn) {
+  ZKPLUS houses[MAX_HOUSES_IN_STREET];
+  int nbEntries = 0;
+  int currentStreetId = -1;
+  ssize_t currentOffset;
+  int nbHouses = 0;
+  bool doStop = false;
+  int n;
+
+  if (currentStreetId == -1) currentStreetId = pHn->streetId;
+
+  if ((nbEntries != 0) && ((currentStreetId != pHn->streetId) || doStop)) {
+    if (findStreet(streets, nbStreets, currentStreetId) == NULL) {
+      // Create street entry only if street does not exist already
+      makeStreetEntry(currentStreetId, nbEntries, currentOffset,
+                      streets + nbStreets);
+      if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
+      if (currentStreetId == STREETID) {
+        LOG("[doIt] streetId:%ld offset:%ld %d entries\n", pHn->streetId,
+            currentOffset, nbEntries);
+      }
+
+      ++nbStreets;
+      currentOffset += nbEntries * sizeof(ZKPLUS);
+      nbHouses += nbEntries;
+      if (!(nbStreets % 100000)) LOG("nbStreets:%d\n", nbStreets);
+    }
+
+    currentStreetId = pHn->streetId;
+    nbEntries = 0;
+  }
+  houses[nbEntries] = makeHouseEntry(pHn);
+  nbEntries++;
+  if (nbEntries >= MAX_HOUSES_IN_STREET) {
+    LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n", nbEntries,
+        currentStreetId);
+    GOTO_ERROR;
+  }
+  return;
+error:
+  LOG("Error doIt line:%d\n", __error_line__);
+  return;
+}
+
 void doIt(FILE* fp, int fdData, int fdIndex) {
   sHousenumber hn;
   ZKPLUS houses[MAX_HOUSES_IN_STREET];
@@ -210,43 +254,13 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
       default:
         goto again;
     }
-    if (currentStreetId == -1) currentStreetId = hn.streetId;
-
-    if ((nbEntries != 0) && ((currentStreetId != hn.streetId) || doStop)) {
-      if (findStreet(streets, nbStreets, currentStreetId) == NULL) {
-        // Create street entry only if street does not exist already
-        makeStreetEntry(currentStreetId, nbEntries, currentOffset,
-                        streets + nbStreets);
-        if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
-        if (currentStreetId == STREETID) {
-          LOG("[doIt] streetId:%ld offset:%ld %d entries\n", hn.streetId,
-              currentOffset, nbEntries);
-        }
-
-        ++nbStreets;
-        currentOffset += nbEntries * sizeof(ZKPLUS);
-        nbHouses += nbEntries;
-        if (!(nbStreets % 100000)) LOG("nbStreets:%d\n", nbStreets);
-      }
-
-      currentStreetId = hn.streetId;
-      nbEntries = 0;
-    }
-
+    processHn(fp, fdData, fdIndex, &hn);
     if (doStop) break;
-
-    houses[nbEntries] = makeHouseEntry(&hn);
-    nbEntries++;
-    if (nbEntries >= MAX_HOUSES_IN_STREET) {
-      LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n",
-          nbEntries, currentStreetId);
-      GOTO_ERROR;
-    }
   }
   LOG("Nb streets:%d Nb houses:%d\n", nbStreets, nbHouses);
   // LOG("Nb negative Ids:%d\n", nbNegativeIds);
-
   if (write(fdIndex, streets, nbStreets * sizeof(sIndex)) < 0) GOTO_ERROR;
+
   return;
 error:
   LOG("Error doIt line:%d\n", __error_line__);
