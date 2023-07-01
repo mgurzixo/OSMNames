@@ -95,7 +95,7 @@ typedef uint64_t STREETIDPLUS;
 struct sHousenumber {
   OSMID osmId;
   OSMID streetId;
-  char houseNumber[64];
+  char houseNumber[128];
   double lon;
   double lat;
 };

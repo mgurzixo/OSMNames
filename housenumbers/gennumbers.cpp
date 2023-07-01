@@ -6,6 +6,7 @@ using namespace std;
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <regex.h>
 
 #include <cstdint>
 #include <string>
@@ -52,7 +53,27 @@ static sIndex streets[MAX_NB_STREETS];
 //   return 0;
 // }
 
-int nbNegativeIds = 0;
+#define MAX_NB_HN_IN_HN 100
+
+void checkForMultipleHousenumbers(sHousenumber* phn) {
+  static regex_t regexComma;
+  static bool isInitialized = false;
+  if (!isInitialized) {
+    // if (!regcomp(&regexComma, "^(([^,]+),)*[^,]+$", 0)) {
+    if (regcomp(&regexComma, ", ", 0)) {
+      LOG("[checkForMultipleHousenumbers] Error compile regex\n");
+      exit(-1);
+    }
+    isInitialized = true;
+  }
+  char* pe = phn->houseNumber;
+  int res = regexec(&regexComma, pe, 0, NULL, 0);
+  if (res == 0) {
+    LOG("[checkForMultipleHousenumbers] RE MATCH '%s'\n", pe);
+  }
+}
+
+// int nbNegativeIds = 0;
 
 int getHn(FILE* fp, sHousenumber* phn) {
   OSMID osmId;
@@ -69,8 +90,10 @@ int getHn(FILE* fp, sHousenumber* phn) {
   // LOG("osm_id:'%s'\n", motlu);
   osmId = strtoull((char*)motlu, NULL, 10);
   if (osmId < 0) {
-    nbNegativeIds++;
-    goto skipLine;
+    // Dont know why!!!
+    // nbNegativeIds++;
+    // goto skipLine;
+    osmId = -osmId;
   }
   phn->osmId = osmId;
   if (!phn->osmId) GOTO_ERROR;
@@ -122,6 +145,7 @@ int getHn(FILE* fp, sHousenumber* phn) {
   if (!phn->lon && !phn->lat) GOTO_ERROR;
 
   // LOG("----------\n");
+  checkForMultipleHousenumbers(phn);
   return ERR_OK;
 error:
   LOG("Error getHn@%d line:%d\n", __error_line__, currentLine);
@@ -220,7 +244,7 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
     }
   }
   LOG("Nb streets:%d Nb houses:%d\n", nbStreets, nbHouses);
-  LOG("Nb negative Ids:%d\n", nbNegativeIds);
+  // LOG("Nb negative Ids:%d\n", nbNegativeIds);
 
   if (write(fdIndex, streets, nbStreets * sizeof(sIndex)) < 0) GOTO_ERROR;
   return;
@@ -243,6 +267,7 @@ int main(int argc, char* argv[]) {
   }
   if (argc == 3) {
     if (!(fp = fopen(argv[2], "r"))) GOTO_ERROR;
+    printf("Reading %s\n", argv[2]);
   } else fp = stdin;
   baseName = argv[1];
   sprintf(strIndex, "%sIndex", baseName);
