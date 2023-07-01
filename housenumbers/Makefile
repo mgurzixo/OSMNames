@@ -13,7 +13,7 @@ LDFLAGS=
 # LDFLAGS=--no-relax 
 
 # CFLAGS=-O3 $(PROFILE_FLAGS) -mcmodel=large -g
-CFLAGS=-Og $(PROFILE_FLAGS) -mcmodel=large -g
+CFLAGS=-O0 $(PROFILE_FLAGS) -mcmodel=large -g
 # CFLAGS=-O0 $(PROFILE_FLAGS)  -g
 # CFLAGS=-mcmodel=large -g
 
@@ -40,6 +40,8 @@ all: $(BINARIES)
 
 $(OBJS):$(ZKINCS)
 
+world:
+	time ./genhousenumbers.sh world `../comcountries ../pbf_file_url`
 
 mergestreets: mergestreets.o findhouse.o $(ZKOBJS) ${OBJS}
 	$(CPP) $(INCDIRS) $(CFLAGS)  $(LDFLAGS) -o $@  $^ $(LIBS)

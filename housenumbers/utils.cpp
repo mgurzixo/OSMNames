@@ -80,57 +80,6 @@ error:
   return 0;
 }
 
-// switch (c) {
-//   case '\t':
-//   case '\n':
-//   case (BYTE)EOF:
-//     *pca = 0;
-//     // LOG("[getMot] c:'%c' motlu:'%s'\n", c, motlu);
-//     return (c);
-//   default:
-//     if (fieldSize >= (sizeof(motlu) - 4)) GOTO_ERROR;
-//     if (c < 0x80) {
-//       fieldSize += 1;
-//       *pca++ = c;
-//     } else if (c < 0xc0) GOTO_ERROR;
-//     else if (c < 0xe0) {  // 2 byte UTF-8
-//       fieldSize += 2;
-//       *pca++ = c;
-//       *pca++ = getc(fp);
-//     } else if (c < 0xf0) {  // 3 byte UTF-8
-//       fieldSize += 3;
-//       *pca++ = c;
-//       *pca++ = getc(fp);
-//       *pca++ = getc(fp);
-//     } else if (c < 0xf8) {  // 4 byte UTF-8
-//       fieldSize += 4;
-//       *pca++ = c;
-//       *pca++ = getc(fp);
-//       *pca++ = getc(fp);
-//       *pca++ = getc(fp);
-//     } else GOTO_ERROR;
-// }
-
-// sIndex* findStreet(sIndex* myStreets, int nbStreets, OSMID streetId) {
-//   int low = 0;
-//   int high = nbStreets - 1;
-//   OSMID si;
-//   // Repeat until the pointers low and high meet each other
-//   while (low <= high) {
-//     int mid = low + (high - low) / 2;
-
-//     // Extract streetId (B0-B6)
-//     si = myStreets[mid].streetIdPlus & ~BYTE7;
-//     if (si == streetId) return myStreets + mid;
-
-//     if (si < streetId) low = mid + 1;
-
-//     else high = mid - 1;
-//   }
-
-//   return NULL;
-// }
-
 uint64_t llToZkn(double lon, double lat) {
   char zk[64];
   zkLatLon zkLl;
@@ -181,4 +130,60 @@ char* trimwhitespace(char* str) {
   end[1] = '\0';
 
   return str;
+}
+
+// Separator is ANY filter char
+// cf.
+// https://stackoverflow.com/questions/3889992/how-does-strtok-split-the-string-into-tokens-in-c
+char* mystrtok(char* str, const char* filter) {
+  if (filter == NULL) {
+    return str;
+  }
+  static char* pcd = NULL;
+  static bool myEof = false;
+  if (str != NULL) {
+    pcd = str;
+    myEof = false;
+  }
+  if (myEof == true) {
+    return NULL;
+  }
+  char* ptrReturn = pcd;
+  for (int j = 0; pcd; j++) {
+    if (pcd[j] == '\0') {
+      myEof = true;
+      return ptrReturn;
+    }
+    for (int i = 0; filter[i] != '\0'; i++) {
+      if (pcd[j] == filter[i]) {
+        // if (pcd[j] == ';') LOG("[mystrtok] got ';'");
+        pcd[j] = '\0';
+        pcd += j + 1;
+        return ptrReturn;
+      }
+    }
+  }
+  return NULL;
+}
+
+// TODO Check overflow
+int makeTabHnFromStr(char** tabHn, char* str, int nbHn) {
+  char* pch = mystrtok(str, HN_SEPARATORS);
+  if (!pch || !*pch) return (0);
+  while (pch != NULL) {
+    bool found = false;
+    char* pt = trimwhitespace(pch);
+    if (!*pt) found = true;
+    else {
+      for (int i = 0; i < nbHn; i++) {
+        if (!strcmp(tabHn[i], pt)) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) tabHn[nbHn++] = (char*)XMCPY((BYTE*)pt);
+    pch = mystrtok(NULL, HN_SEPARATORS);
+  }
+  return nbHn;
 }

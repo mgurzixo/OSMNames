@@ -109,32 +109,32 @@ error:
 }
 
 // TODO Check overflow
-void makeHnTab(sStreet* pStreet, char** tabHn, int* pNbHn) {
-  BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
-  if (!*ps) return;
-  *pNbHn = 0;
-  int nbHn = 0;
-  char* pch = strtok((char*)ps, ",");
-  while (pch != NULL) {
-    bool found = false;
-    char* pt = trimwhitespace(pch);
-    if (!pt) found = true;
-    else {
-      // LOG("[mHn] pt:'%s'\n", pt);
-      for (int i = 0; i < nbHn; i++) {
-        // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
-        if (!strcmp(tabHn[i], pt)) {
-          // LOG("[removeDuplicateHn] DUP:'%s'\n", pch);
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) tabHn[nbHn++] = pt;
-    pch = strtok(NULL, ",");
-  }
-  *pNbHn = nbHn;
-}
+// int makeHnTab(sStreet* pStreet, char** tabHn) {
+//   BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
+//   int nbHn = 0;
+//   if (!ps || !*ps) return nbHn;
+//   char* pch = mystrtok((char*)ps, HN_SEPARATORS);
+//   if (!pch || !*pch) return nbHn;
+//   while (pch != NULL) {
+//     bool found = false;
+//     char* pt = trimwhitespace(pch);
+//     if (!pt || !*pt) found = true;
+//     else {
+//       // LOG("[mHn] pt:'%s'\n", pt);
+//       for (int i = 0; i < nbHn; i++) {
+//         // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
+//         if (!strcmp(tabHn[i], pt)) {
+//           // LOG("[removeDuplicateHn] DUP:'%s'\n", pch);
+//           found = true;
+//           break;
+//         }
+//       }
+//     }
+//     if (!found) tabHn[nbHn++] = pt;
+//     pch = mystrtok(NULL, HN_SEPARATORS);
+//   }
+//   return nbHn;
+// }
 
 static void copyStringIntoField(sStreet* pInto, int fieldNum, BYTE* str) {
   FREE(pInto->fields[fieldNum]);
@@ -160,16 +160,19 @@ int nbHousesFound = 0;
 
 static void setupHouseNumbers(sStreet* pStreet) {
   BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
-  if (!*ps) return;
+  if (!ps || !*ps) return;
+  const char invalidZk[15] = "--------------";
+  char buf[1024];
   char* tabHn[MAX_HOUSES_IN_STREET];  // TODO Check overflow
   int nbHn = 0;
   ZKSNUM zksnum;
-  makeHnTab(pStreet, tabHn, &nbHn);
+  // nbHn = makeHnTab(pStreet, tabHn);
+  nbHn = makeTabHnFromStr(tabHn, (char*)pStreet->fields[F_STREET_HOUSENUMBERS]);
   for (int i = 0; i < nbHn; i++) {
     zksnum = findHouse(houseStreets, nbHouseStreets, pStreet->osmId, tabHn[i]);
     if (zksnum == INVALID_ZK) {
       nbHousesNotFound++;
-      if (nbHousesNotFound < 5)
+      if (nbHousesNotFound < 50)
         LOG("setupHouseNumbers] streetId:%ld hN:'%s' zksn:%ld\n",
             pStreet->osmId, tabHn[i], zksnum);
     } else nbHousesFound++;
@@ -204,48 +207,52 @@ static void copyFieldsExceptHousenumbers(sStreet* pInto, sStreet* pFrom) {
 }
 
 static void mergeHousenumbers(sStreet* pInto, sStreet* pFrom) {
-  BYTE* pf = pFrom->fields[F_STREET_HOUSENUMBERS];
-  BYTE* pt = pInto->fields[F_STREET_HOUSENUMBERS];
+  // BYTE* pf = pFrom->fields[F_STREET_HOUSENUMBERS];
+  // BYTE* pt = pInto->fields[F_STREET_HOUSENUMBERS];
   // LOG("[mergeHousenumbers]  pf:'%s'\n", pf);
   // LOG("[mergeHousenumbers]  pt:'%s'\n", pt);
   char* tabHn[MAX_HOUSES_IN_STREET];  // TODO Check overflow
   int nbHn = 0;
-  char* pch = strtok((char*)pt, ",");
-  while (pch != NULL) {
-    bool found = false;
-    char* pt = trimwhitespace(pch);
-    if (!pt) found = true;
-    else {
-      // LOG("[mHn]   To: n:%d '%s'\n", nbHn, pch);
-      for (int i = 0; i < nbHn; i++) {
-        // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
-        if (!strcmp(tabHn[i], pt)) {
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) tabHn[nbHn++] = pt;
-    pch = strtok(NULL, ",");
-  }
-  pch = strtok((char*)pf, ",");
-  while (pch != NULL) {
-    bool found = false;
-    // LOG("[mHn] From: n:%d '%s'\n", nbHn, pch);
-    char* pt = trimwhitespace(pch);
-    if (!pt) found = true;
-    else {
-      for (int i = 0; i < nbHn; i++) {
-        // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
-        if (!strcmp(tabHn[i], pt)) {
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) tabHn[nbHn++] = pt;
-    pch = strtok(NULL, ",");
-  }
+  nbHn = makeTabHnFromStr(tabHn, (char*)pInto->fields[F_STREET_HOUSENUMBERS]);
+  nbHn = makeTabHnFromStr(tabHn, (char*)pFrom->fields[F_STREET_HOUSENUMBERS],
+                          nbHn);
+
+  // char* pch = mystrtok((char*)pt, HN_SEPARATORS);
+  // while (pch != NULL) {
+  //   bool found = false;
+  //   char* pt = trimwhitespace(pch);
+  //   if (!pt) found = true;
+  //   else {
+  //     // LOG("[mHn]   To: n:%d '%s'\n", nbHn, pch);
+  //     for (int i = 0; i < nbHn; i++) {
+  //       // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
+  //       if (!strcmp(tabHn[i], pt)) {
+  //         found = true;
+  //         break;
+  //       }
+  //     }
+  //   }
+  //   if (!found) tabHn[nbHn++] = pt;
+  //   pch = mystrtok(NULL, HN_SEPARATORS);
+  // }
+  // pch = mystrtok((char*)pf, HN_SEPARATORS);
+  // while (pch != NULL) {
+  //   bool found = false;
+  //   // LOG("[mHn] From: n:%d '%s'\n", nbHn, pch);
+  //   char* pt = trimwhitespace(pch);
+  //   if (!pt) found = true;
+  //   else {
+  //     for (int i = 0; i < nbHn; i++) {
+  //       // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
+  //       if (!strcmp(tabHn[i], pt)) {
+  //         found = true;
+  //         break;
+  //       }
+  //     }
+  //   }
+  //   if (!found) tabHn[nbHn++] = pt;
+  //   pch = mystrtok(NULL, HN_SEPARATORS);
+  // }
   char bufHn[MAX_HOUSES_IN_STREET * 100];  // TODO Check overflow
   char* pcd;
   char* pca = bufHn;
@@ -260,29 +267,33 @@ static void mergeHousenumbers(sStreet* pInto, sStreet* pFrom) {
 }
 
 static void removeDuplicateHn(sStreet* pStreet) {
-  BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
-  if (!*ps) return;
   char* tabHn[MAX_HOUSES_IN_STREET];  // TODO Check overflow
-  int nbHn = 0;
-  char* pch = strtok((char*)ps, ",");
-  while (pch != NULL) {
-    bool found = false;
-    char* pt = trimwhitespace(pch);
-    if (!pt) found = true;
-    else {
-      // LOG("[mHn]   To: n:%d '%s'\n", nbHn, pch);
-      for (int i = 0; i < nbHn; i++) {
-        // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
-        if (!strcmp(tabHn[i], pt)) {
-          // LOG("[removeDuplicateHn] DUP:'%s'\n", pch);
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) tabHn[nbHn++] = pt;
-    pch = strtok(NULL, ",");
-  }
+  int nbHn =
+      makeTabHnFromStr(tabHn, (char*)pStreet->fields[F_STREET_HOUSENUMBERS]);
+
+  // BYTE* ps = pStreet->fields[F_STREET_HOUSENUMBERS];
+  // if (!ps || !*ps) return;
+
+  // char* pch = mystrtok((char*)ps, HN_SEPARATORS);
+  // while (pch != NULL) {
+  //   bool found = false;
+  //   char* pt = trimwhitespace(pch);
+  //   if (!pt) found = true;
+  //   else {
+  //     // LOG("[mHn]   To: n:%d '%s'\n", nbHn, pch);
+  //     for (int i = 0; i < nbHn; i++) {
+  //       // LOG("[mHn] nbHn:%d i:'%d'\n", nbHn, i);
+  //       if (!strcmp(tabHn[i], pt)) {
+  //         // LOG("[removeDuplicateHn] DUP:'%s'\n", pch);
+  //         found = true;
+  //         break;
+  //       }
+  //     }
+  //   }
+  //   if (!found) tabHn[nbHn++] = pt;
+  //   pch = mystrtok(NULL, HN_SEPARATORS);
+  // }
+
   char bufHn[MAX_HOUSES_IN_STREET * 100];  // TODO Check overflow
   char* pcd;
   char* pca = bufHn;
@@ -375,7 +386,7 @@ static void doIt(FILE* fpi, FILE* fpo) {
   }
   if (pStreet->fields[F_STREET_ID]) outputStreet(fpo, pStreet);
   LOG("nb geom entries:%d maxFieldSize:%d \n", nbStreets, maxFieldSize);
-  LOG("nbHousesFound:%d nbHousesNotFound:%d (%.2f)\n", nbHousesFound,
+  LOG("nbHousesFound:%d nbHousesNotFound:%d (%.3f%%)\n", nbHousesFound,
       nbHousesNotFound,
       (nbHousesNotFound * 100.) / (nbHousesNotFound + nbHousesFound));
   freeStreet(pStreet);

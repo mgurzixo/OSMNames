@@ -33,48 +33,6 @@ static sIndex streets[MAX_NB_STREETS];
 #define ERR_EOF 1
 #define ERR_BAD_LINE 2
 
-// char getMot() {
-//   char* pca;
-//   char c;
-//   for (pca = motlu; *pLine;) {
-//     c = *pLine++;
-//     switch (c) {
-//       case '\t':
-//       case '\n':
-//         *pca = 0;
-//         // LOG("[getMot] motlu:'%s'\n", motlu);
-//         return (c);
-//       default:
-//         *pca++ = c;
-//     }
-//   }
-//   *pca = 0;
-//   LOG("Error getMot motlu:'%s' str:'%s'\n", motlu, line);
-//   return 0;
-// }
-
-#define MAX_NB_HN_IN_HN 100
-
-void checkForMultipleHousenumbers(sHousenumber* phn) {
-  static regex_t regexComma;
-  static bool isInitialized = false;
-  if (!isInitialized) {
-    // if (!regcomp(&regexComma, "^(([^,]+),)*[^,]+$", 0)) {
-    if (regcomp(&regexComma, ", ", 0)) {
-      LOG("[checkForMultipleHousenumbers] Error compile regex\n");
-      exit(-1);
-    }
-    isInitialized = true;
-  }
-  char* pe = phn->houseNumber;
-  int res = regexec(&regexComma, pe, 0, NULL, 0);
-  if (res == 0) {
-    LOG("[checkForMultipleHousenumbers] RE MATCH '%s'\n", pe);
-  }
-}
-
-// int nbNegativeIds = 0;
-
 int getHn(FILE* fp, sHousenumber* phn) {
   OSMID osmId;
   char tok;
@@ -91,8 +49,6 @@ int getHn(FILE* fp, sHousenumber* phn) {
   osmId = strtoull((char*)motlu, NULL, 10);
   if (osmId < 0) {
     // Dont know why!!!
-    // nbNegativeIds++;
-    // goto skipLine;
     osmId = -osmId;
   }
   phn->osmId = osmId;
@@ -145,7 +101,6 @@ int getHn(FILE* fp, sHousenumber* phn) {
   if (!phn->lon && !phn->lat) GOTO_ERROR;
 
   // LOG("----------\n");
-  checkForMultipleHousenumbers(phn);
   return ERR_OK;
 error:
   LOG("Error getHn@%d line:%d\n", __error_line__, currentLine);
@@ -188,59 +143,88 @@ void makeStreetEntry(unsigned int streetId, int nbEntries, ssize_t offset,
                                                << (64 - 8 - 8);
 }
 
-void processHn(FILE* fp, int fdData, int fdIndex, sHousenumber* pHn) {
-  ZKPLUS houses[MAX_HOUSES_IN_STREET];
-  int nbEntries = 0;
-  int currentStreetId = -1;
-  ssize_t currentOffset;
-  int nbHouses = 0;
-  bool doStop = false;
-  int n;
+// int processHn(int fdData, sHousenumber* pHn, ZKPLUS houses[], int nbEntries)
+// {
+//   int currentStreetId = -1;
+//   ssize_t currentOffset;
+//   int nbHouses = 0;
+//   bool doStop = false;
+//   int n;
 
-  if (currentStreetId == -1) currentStreetId = pHn->streetId;
+//   if ((nbEntries != 0) && ((currentStreetId != pHn->streetId) || doStop)) {
+//     if (findStreet(streets, nbStreets, currentStreetId) == NULL) {
+//       // Create street entry only if street does not exist already
+//       makeStreetEntry(currentStreetId, nbEntries, currentOffset,
+//                       streets + nbStreets);
+//       if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
+//       if (currentStreetId == STREETID) {
+//         LOG("[doIt] streetId:%ld offset:%ld %d entries\n", pHn->streetId,
+//             currentOffset, nbEntries);
+//       }
 
-  if ((nbEntries != 0) && ((currentStreetId != pHn->streetId) || doStop)) {
-    if (findStreet(streets, nbStreets, currentStreetId) == NULL) {
-      // Create street entry only if street does not exist already
-      makeStreetEntry(currentStreetId, nbEntries, currentOffset,
-                      streets + nbStreets);
-      if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
-      if (currentStreetId == STREETID) {
-        LOG("[doIt] streetId:%ld offset:%ld %d entries\n", pHn->streetId,
-            currentOffset, nbEntries);
-      }
+//       ++nbStreets;
+//       currentOffset += nbEntries * sizeof(ZKPLUS);
+//       nbHouses += nbEntries;
+//       if (!(nbStreets % 100000)) LOG("nbStreets:%d\n", nbStreets);
+//     } else LOG("[processHn] street not found\n");
 
-      ++nbStreets;
-      currentOffset += nbEntries * sizeof(ZKPLUS);
-      nbHouses += nbEntries;
-      if (!(nbStreets % 100000)) LOG("nbStreets:%d\n", nbStreets);
-    }
+//     currentStreetId = pHn->streetId;
+//     nbEntries = 0;
+//   }
+//   houses[nbEntries] = makeHouseEntry(pHn);
+//   nbEntries++;
+//   if (nbEntries >= MAX_HOUSES_IN_STREET) {
+//     LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n",
+//     nbEntries,
+//         currentStreetId);
+//     GOTO_ERROR;
+//   }
+//   return nbEntries;
+// error:
+//   LOG("Error doIt line:%d\n", __error_line__);
+//   return nbEntries;
+// }
 
-    currentStreetId = pHn->streetId;
-    nbEntries = 0;
-  }
-  houses[nbEntries] = makeHouseEntry(pHn);
-  nbEntries++;
-  if (nbEntries >= MAX_HOUSES_IN_STREET) {
-    LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%d\n", nbEntries,
-        currentStreetId);
-    GOTO_ERROR;
-  }
-  return;
-error:
-  LOG("Error doIt line:%d\n", __error_line__);
-  return;
-}
+#define MAX_NB_HN_IN_HN 100
+
+// int makeTabHn(sHousenumber* pHn, char** tabHn) {
+//   int nbHn = 0;
+//   char* pe = pHn->houseNumber;
+//   char* pch = mystrtok((char*)pe, HN_SEPARATORS);
+//   if (pch && !*pch) return (0);
+//   // LOG("[cFMHn] pe:%s pch:%s\n", pe, pch);
+//   while (pch != NULL) {
+//     bool found = false;
+//     char* pt = trimwhitespace(pch);
+//     if (!*pt) found = true;
+//     else {
+//       // LOG("[makeTabHn] nbHn:%d pt:'%s'\n", nbHn, pt);
+//       for (int i = 0; i < nbHn; i++) {
+//         if (!strcmp(tabHn[i], pt)) {
+//           found = true;
+//           break;
+//         }
+//       }
+//     }
+//     // LOG("++++++++\n");
+//     // LOG("[makeTabHn] found:%d nbHn:%d pt:'%s'\n", found, nbHn, pt);
+//     if (!found) tabHn[nbHn++] = (char*)XMCPY((BYTE*)pt);
+//     pch = mystrtok(NULL, HN_SEPARATORS);
+//   }
+//   return nbHn;
+// }
 
 void doIt(FILE* fp, int fdData, int fdIndex) {
+  regex_t regexComma;
   sHousenumber hn;
   ZKPLUS houses[MAX_HOUSES_IN_STREET];
   int nbEntries = 0;
-  int currentStreetId = -1;
+  OSMID currentStreetId = -1;
   ssize_t currentOffset;
   int nbHouses = 0;
   bool doStop = false;
-  int n;
+  int nbHn;
+  char* tabHn[MAX_NB_HN_IN_HN];
 
   for (currentLine = 0;;) {
   again:
@@ -254,10 +238,57 @@ void doIt(FILE* fp, int fdData, int fdIndex) {
       default:
         goto again;
     }
-    processHn(fp, fdData, fdIndex, &hn);
+
+    // char logBuf[10000];
+    // strcpy(logBuf, hn.houseNumber);
+
+    if (currentStreetId == -1) currentStreetId = hn.streetId;
+
+    // LOG("[doIt] nbEntries:%d currentStreetId:%ld hn.streetId:%ld\n",
+    // nbEntries, currentStreetId, hn.streetId);
+    if (((currentStreetId != hn.streetId) || doStop)) {
+      if (nbEntries != 0) {
+        // Flush entries
+        if (findStreet(streets, nbStreets, currentStreetId) == NULL) {
+          // LOG("[doIt] street found\n");
+          // Create street entry only if street does not exist already
+          makeStreetEntry(currentStreetId, nbEntries, currentOffset,
+                          streets + nbStreets);
+          if (write(fdData, houses, nbEntries * sizeof(ZKPLUS)) < 0) GOTO_ERROR;
+          ++nbStreets;
+          currentOffset += nbEntries * sizeof(ZKPLUS);
+          nbHouses += nbEntries;
+          if (!(nbStreets % 1000000)) LOG("nbStreets:%d\n", nbStreets);
+        } else {
+          //  LOG("[doIt] street not found\n");
+        }
+      }
+      currentStreetId = hn.streetId;
+      nbEntries = 0;
+    }
+
+    // nbHn = makeTabHn(&hn, tabHn);
+    nbHn = makeTabHnFromStr(tabHn, hn.houseNumber);
+
+    // if (nbHn > 1) LOG("[doIt] nbHn:%d Hn:'%s'\n", nbHn, logBuf);
+    // LOG("[doIt] nbHn:%d Hn:'%s'\n", nbHn, logBuf);
+    for (int i = 0; i < nbHn; i++) {
+      nbHouses++;
+      strcpy(hn.houseNumber, tabHn[i]);
+      FREE(tabHn[i]);
+
+      houses[nbEntries] = makeHouseEntry(&hn);
+      nbEntries++;
+      if (nbEntries >= MAX_HOUSES_IN_STREET) {
+        LOG("[doIt] too many houses. nbEntries:%d currentStreetId:%ld\n",
+            nbEntries, currentStreetId);
+        GOTO_ERROR;
+      }
+    }
     if (doStop) break;
   }
-  LOG("Nb streets:%d Nb houses:%d\n", nbStreets, nbHouses);
+  LOG("Nb lines:%d Nb streets:%d Nb houses:%d\n", currentLine, nbStreets,
+      nbHouses);
   // LOG("Nb negative Ids:%d\n", nbNegativeIds);
   if (write(fdIndex, streets, nbStreets * sizeof(sIndex)) < 0) GOTO_ERROR;
 

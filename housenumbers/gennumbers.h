@@ -15,6 +15,7 @@ typedef char UTF8;           // for code units of UTF-8 strings
 typedef unsigned char BYTE;  // for binary data
 #define BEOF ((BYTE)-1)
 
+// For tests
 #define STREETID 4527645
 #define HOUSENUMBER "25 bis"
 
@@ -59,6 +60,8 @@ extern FILE* fpLog;
 
 #define LOG(...) \
   if (DEBUG) fprintf(fpLog, __VA_ARGS__), fflush(fpLog)
+
+#define HN_SEPARATORS ",;"
 
 // Maximal number of streets in world
 #define MAX_NB_STREETS 1000000000
@@ -126,6 +129,8 @@ extern char getMot(FILE* fp);
 
 extern H16 myHash(const char* str);  // utils
 extern char* trimwhitespace(char* str);
+extern char* mystrtok(char str[], const char filter[]);
+extern int makeTabHnFromStr(char** tabHn, char* str, int nbHn = 0);
 
 extern uint64_t llToZkn(double lon, double lat);
 extern char* zknToZk(ZKSNUM zkn0, char* zk);
