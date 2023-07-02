@@ -412,7 +412,7 @@ int main(int argc, char* argv[]) {
   sprintf(str, "%s_geo1.tsv", basename);
   LOG("[main] reading '%s'\n", str);
   if (!(fpi = fopen(str, "r"))) GOTO_ERROR;
-  sprintf(str, "%s_search0.tsv", basename);
+  sprintf(str, "%s_search.tsv", basename);
   LOG("[main] writing '%s'\n", str);
   if (!(fpo = fopen(str, "w"))) GOTO_ERROR;
   doIt(fpi, fpo);

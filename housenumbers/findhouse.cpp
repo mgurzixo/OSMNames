@@ -56,12 +56,12 @@ ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
 
   if (!pIndex) return INVALID_ZK;
 
-  // printf("[findHouse] h16:0x%04x\n", h16);
+  // LOG("[findHouse] h16:0x%04x\n", h16);
 
   nbEntries = decodeNbEntries(pIndex);
   offset = decodeOffset(pIndex);
 
-  // printf("[findHouse] offset:%ld nbEntries:%d\n", offset, nbEntries);
+  // LOG("[findHouse] offset:%ld nbEntries:%d\n", offset, nbEntries);
 
   if ((lseek(fdData, offset, SEEK_SET)) < 0) GOTO_ERROR;
   count = nbEntries * sizeof(ZKPLUS);
@@ -71,35 +71,43 @@ ZKSNUM findHouse(sIndex* myStreets, int nbStreets, OSMID streetId,
   for (i = 0; i < nbEntries; i++) {
     H16 h = decodeHash(entries[i]);
     if (h == h16) {
-      // printf("[findHouse] i:%d h:0x%04x zkPlus:0x%08lx\n", i, h, entries[i]);
+      // LOG("[findHouse] i:%d h:0x%04x zkPlus:0x%08lx\n", i, h, entries[i]);
       zkn = decodeZkn(entries[i]);
       break;
     }
   }
   return zkn;
 error:
-  fprintf(stderr, "Error findHouse line:%d errno:%d\n", __error_line__, errno);
+  LOG("Error findHouse line:%d errno:%d\n", __error_line__, errno);
   return INVALID_ZK;
 }
 
 int initHouse(const char* baseName, sIndex** hstreets) {
   char str[STRSIZ];
-  struct stat statBuf;
+  struct stat statBufIndex, statBufData;
   int fdIndex;
-  sprintf(str, "%sIndex", baseName);
-  if (stat(str, &statBuf) < 0) return -1;
-  nbStreets = statBuf.st_size / sizeof(sIndex);
-  printf("[myInit] nbStreets from houseNums:%d\n", nbStreets);
-  if ((fdIndex = open(str, O_RDONLY)) < 0) return -1;
-  streets =
-      (sIndex*)mmap(NULL, statBuf.st_size, PROT_READ, MAP_SHARED, fdIndex, 0);
+  int nbHouses;
+  sprintf(str, "%sIndex.bin", baseName);
+  if (stat(str, &statBufIndex) < 0) GOTO_ERROR;
+  nbStreets = statBufIndex.st_size / sizeof(sIndex);
+  LOG("[myInit] nbStreets from houseNums:%d\n", nbStreets);
+  if ((fdIndex = open(str, O_RDONLY)) < 0) GOTO_ERROR;
+  streets = (sIndex*)mmap(NULL, statBufIndex.st_size, PROT_READ, MAP_SHARED,
+                          fdIndex, 0);
 
   if (streets == MAP_FAILED) {
-    printf("Mapping Failed\n");
+    LOG("Mapping Failed\n");
     return -1;
   }
-  sprintf(str, "%sData", baseName);
-  if ((fdData = open(str, O_RDONLY)) < 0) return -1;
+  sprintf(str, "%sData.bin", baseName);
+  if (stat(str, &statBufData) < 0) GOTO_ERROR;
+  if ((fdData = open(str, O_RDONLY)) < 0) GOTO_ERROR;
+  nbHouses = statBufIndex.st_size / sizeof(ZKPLUS);
+
+  LOG("[initHouse] Init done. %d streets %d houses.\n", nbStreets, nbHouses);
   *hstreets = streets;
   return nbStreets;
+error:
+  LOG("Error initHouse line:%d errno:%d\n", __error_line__, errno);
+  return -1;
 }

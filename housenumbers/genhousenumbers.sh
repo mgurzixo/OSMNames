@@ -58,6 +58,8 @@ echo Generating ${outname}Index and ${outname}Data
 
 echo Sorting ${outname}_geo.tsv by osm_id ...
 sort -n -t "$(printf "\t")" -k 4,4 <${outname}_geo.tsv >${outname}_geo1.tsv
-echo Generating ${outname}_search0.tsv
+echo Generating ${outname}_search.tsv...
 ./mergestreets ${outname}
+echo Patching ${outname}_search.tsv...
+sed -i "1s/^/$(cat geoline1.txt)\n/" ${outname}_search.tsv
 echo done.

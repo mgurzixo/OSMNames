@@ -12,15 +12,18 @@ __pycache__/
 
 docs/_build_html/
 
+bid*
 *.swp
 *.tsv
 *.tsv.gz
-bid*
 *.log
 *.o
 *.gcda
 *.gcno
 *.gcov
+*.bin
+*.json.gz
+
 gmon.out
 worldsorted
 testhouse
@@ -28,9 +31,4 @@ gennumbers
 mergestreets
 housesfcgi
 tinyfcgi
-housenumbersData
-housenumbersIndex
 mergestreets
-*.json.gz
-housenumbers/testData
-housenumbers/testIndex

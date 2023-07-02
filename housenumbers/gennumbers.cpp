@@ -315,8 +315,8 @@ int main(int argc, char* argv[]) {
     printf("Reading %s\n", argv[2]);
   } else fp = stdin;
   baseName = argv[1];
-  sprintf(strIndex, "%sIndex", baseName);
-  sprintf(strData, "%sData", baseName);
+  sprintf(strIndex, "%sIndex.bin", baseName);
+  sprintf(strData, "%sData.bin", baseName);
   printf("Generating %s %s\n", strIndex, strData);
   if ((fdIndex = open(strIndex, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
     GOTO_ERROR;

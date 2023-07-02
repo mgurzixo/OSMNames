@@ -1,9 +1,11 @@
 BASE=/home/mgouget/dev
-ZKC=$(BASE)/zkc
-ZKJS=$(BASE)/zkjs
-JSMN=$(BASE)/jsmn
+TEST_BASENAME=test
 
-INCDIRS= -I. -I$(ZKC) -I$(ZKJS) -I$(JSMN)
+# TEST_COUNTRIES=paris
+TEST_COUNTRIES=portugal-latest
+# TEST_COUNTRIES=luxembourg-latest
+
+WORLD_BASENAME=world
 
 PROFILE_FLAGS=
 # PROFILE_FLAGS=-pg
@@ -13,21 +15,23 @@ LDFLAGS=
 # LDFLAGS=--no-relax 
 
 # CFLAGS=-O3 $(PROFILE_FLAGS) -mcmodel=large -g
-CFLAGS=-O0 $(PROFILE_FLAGS) -mcmodel=large -g
 # CFLAGS=-O0 $(PROFILE_FLAGS)  -g
-# CFLAGS=-mcmodel=large -g
+# CFLAGS=-O0 $(PROFILE_FLAGS)  -g
+CFLAGS=-O3 -mcmodel=large -g
 
 CPPFLAGS=$(CFLAGS)
 CC=gcc
 CPP=g++
-BINARIES= gennumbers testhouse tinyfcgi housesfcgi mergestreets
-.PHONY: all
+ZKC=$(BASE)/zkc
+ZKJS=$(BASE)/zkjs
+JSMN=$(BASE)/jsmn
+INCDIRS= -I. -I$(ZKC) -I$(ZKJS) -I$(JSMN)
 LIBS=-ltcmalloc -lm
 
+BINARIES= gennumbers testhouse tinyfcgi fcgihn mergestreets
 ZKOBJS=$(ZKC)/zonKod.o $(ZKC)/zkUtils.o $(ZKJS)/zkBands.o
 ZKINCS=gennumbers.h
 OBJS=utils.o
-TEST_COUNTRY=paris
 
 ### Rules ###
 %.o : %.c
@@ -36,18 +40,39 @@ TEST_COUNTRY=paris
 %.o : %.cpp
 	$(CPP) $(INCDIRS) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
+.PHONY: all
+
 all: $(BINARIES)
 
 $(OBJS):$(ZKINCS)
 
-world:
-	time ./genhousenumbers.sh world `../comcountries ../pbf_file_url`
+# Create worldIndex worldData 
+makeworld: gennumbers mergestreets 
+	time sh -x ./genhousenumbers.sh $(WORLD_BASENAME) `../comcountries ../pbf_file_url`
+
+maketest: gennumbers mergestreets 
+	time ./genhousenumbers.sh $(TEST_BASENAME) $(TEST_COUNTRIES)
+
+spawnworld: fcgihn
+	- kill `cat fcgi$(WORLD_BASENAME).pid`
+	sleep 1
+	spawn-fcgi -u mgouget -p 3031 -P fcgi$(WORLD_BASENAME).pid -- ./fcgihn -b$(WORLD_BASENAME)
+
+spawntest: fcgihn
+	- kill `cat fcgi$(TEST_BASENAME).pid`
+	sleep 1
+	spawn-fcgi -u mgouget -p 3033 -P fcgi$(TEST_BASENAME).pid -- ./fcgihn -b$(TEST_BASENAME)
+
+test: maketest spawntest
 
 mergestreets: mergestreets.o findhouse.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS)  $(LDFLAGS) -o $@  $^ $(LIBS)
+	$(CPP) $(INCDIRS) $(CFLAGS)  $(LDFLAGS) -o $@ $^ $(LIBS)
 
 gennumbers: gennumbers.o findhouse.o $(ZKOBJS) ${OBJS}
 	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ $(LIBS)
+
+fcgihn: fcgihn.o findhouse.o $(ZKOBJS) ${OBJS}
+	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ -lfcgi $(LIBS)
 
 testhouse: testhouse.o findhouse.o $(ZKOBJS) ${OBJS}
 	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ $(LIBS)
@@ -55,18 +80,17 @@ testhouse: testhouse.o findhouse.o $(ZKOBJS) ${OBJS}
 tinyfcgi: tinyfcgi.o
 	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ -lfcgi $(LIBS)
 
-housesfcgi: housesfcgi.o findhouse.o $(ZKOBJS) ${OBJS}
-	$(CPP) $(INCDIRS) $(CFLAGS) $(LDFLAGS) -o $@  $^ -lfcgi $(LIBS)
+
 
 rtest:
-	- killall -9 housesfcgi
+	- killall -9 fcgihn
 	- kill `cat testPid`
-	spawn-fcgi -P testPid -u mgouget -p 3033 ./housesfcgi
+	spawn-fcgi -P testPid -u mgouget -p 3033 ./fcgihn
 
 gentesthn:
 	genhousenumbers $(TEST_COUNTRIES)
 
-test: gennumbers housesfcgi
+test: gennumbers fcgihn
 	echo Filtering test housenumbers...
 	# remove first line (columns names)
 	rm -f -r test.tsv
